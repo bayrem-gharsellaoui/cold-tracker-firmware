@@ -1,24 +1,39 @@
+#include <zephyr/app_version.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
 
+#define ANSI_COLOR_CYAN  "\033[96m"
+#define ANSI_COLOR_GREEN "\033[92m"
+#define ANSI_COLOR_RESET "\033[0m"
 
-#define COLDTRACKER_BOOT_BANNER                                                                                               \
-                                                                                                                              \
-    "\033[36m ██████╗ ██████╗ ██╗     ██████╗  \033[32m ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗  \033[0m\r\n"\
-    "\033[36m██╔════╝██╔═══██╗██║     ██╔══██╗ \033[32m ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗ \033[0m\r\n"\
-    "\033[36m██║     ██║   ██║██║     ██║  ██║ \033[32m    ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝ \033[0m\r\n"\
-    "\033[36m██║     ██║   ██║██║     ██║  ██║ \033[32m    ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗ \033[0m\r\n"\
-    "\033[36m╚██████╗╚██████╔╝███████╗██████╔╝ \033[32m    ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║ \033[0m\r\n"\
-    "\033[36m ╚═════╝ ╚═════╝ ╚══════╝╚═════╝  \033[32m    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ \033[0m\r\n"\
-    "\r\n                                          v%s+g%s - (c) 2026 Techleef. All rights reserved.\r\n\r\n"
+/* Generated from
+ * https://patorjk.com/software/taag/#p=display&f=ANSI+Shadow&t=Type+Something+&x=none&v=4&h=4&w=80&we=false
+ * and formatted using "clang-format --style=file:${ZEPHYR_BASE}/.clang-format -i src/main.c"
+ */
+#define COLDTRACKER_BOOT_BANNER                                                                    \
+	"\r\n" ANSI_COLOR_CYAN " ██████╗ ██████╗ ██╗     ██████╗ " ANSI_COLOR_GREEN                \
+	"████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ " ANSI_COLOR_RESET               \
+	"\r\n" ANSI_COLOR_CYAN "██╔════╝██╔═══██╗██║     ██╔══██╗" ANSI_COLOR_GREEN                \
+	"╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗" ANSI_COLOR_RESET               \
+	"\r\n" ANSI_COLOR_CYAN "██║     ██║   ██║██║     ██║  ██║" ANSI_COLOR_GREEN                \
+	"   ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝" ANSI_COLOR_RESET               \
+	"\r\n" ANSI_COLOR_CYAN "██║     ██║   ██║██║     ██║  ██║" ANSI_COLOR_GREEN                \
+	"   ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗" ANSI_COLOR_RESET               \
+	"\r\n" ANSI_COLOR_CYAN "╚██████╗╚██████╔╝███████╗██████╔╝" ANSI_COLOR_GREEN                \
+	"   ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║" ANSI_COLOR_RESET               \
+	"\r\n" ANSI_COLOR_CYAN " ╚═════╝ ╚═════╝ ╚══════╝╚═════╝ " ANSI_COLOR_GREEN                \
+	"   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝" ANSI_COLOR_RESET "\r\n"        \
+	"\r\n" ANSI_COLOR_GREEN "                     v%s - (c) 2026 Techleef. All rights "        \
+	"reserved.\r\n" ANSI_COLOR_RESET ANSI_COLOR_CYAN                                           \
+	"                            Target: %s\r\n\r\n" ANSI_COLOR_RESET
 
-int main (void)
+int main(void)
 {
-    printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, GIT_COMMIT_SHORT);
+	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
-    while (1)
-    {
-        k_msleep(100);
-    }
+	while (1) {
+		k_msleep(1000);
+	}
 
-    return 0;
+	return 0;
 }

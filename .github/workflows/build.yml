@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        board: [native_sim, nucleo_u575zi_q, esp32_devkitc/esp32/procpu]
+
+    steps:
+      - name: Checkout module repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Set up Zephyr
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          manifest-file-name: west.yml
+          toolchains: arm-zephyr-eabi:xtensa-espressif_esp32_zephyr-elf
+
+      - name: Build on ${{ matrix.board }}
+        run: |
+          west build -b ${{ matrix.board }}

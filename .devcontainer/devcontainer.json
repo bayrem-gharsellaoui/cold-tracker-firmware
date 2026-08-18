@@ -3,9 +3,6 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workdir/application,type=bind",
   "workspaceFolder": "/workdir",
   "postCreateCommand": "bash application/.devcontainer/post-create.sh",
-  "mounts": [
-    "source=${localWorkspaceFolder}/.vscode/,target=/workdir/.vscode,type=bind,consistency=cached"
-  ],
   "runArgs": [
     "--privileged",
     "--device=/dev/bus/usb:/dev/bus/usb",
@@ -32,7 +29,8 @@
         "files.associations": {
           "*.overlay": "dts",
           "*.dts": "dts",
-          "*.dtsi": "dts"
+          "*.dtsi": "dts",
+          ".config": "makefile"
         }
       },
       "keybindings": [
@@ -76,10 +74,7 @@
         "eamodio.gitlens",
         "ms-vscode.hexeditor",
         "dan-c-underwood.arm",
-        "ZixuanWang.linkerscript",
-        "Gruntfuggly.todo-tree",
-        "ms-python.black-formatter",
-        "bierner.markdown-mermaid"
+        "ZixuanWang.linkerscript"
       ]
     }
   }

@@ -1,0 +1,32 @@
+name: Format
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout module repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Set up Zephyr
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          manifest-file-name: west.yml
+          toolchains: arm-zephyr-eabi
+
+      - name: Check formatting
+        run: |
+          ZEPHYR_BASE=$(west topdir)/zephyr
+          clang-format -i src/*.c
+            --style=file:${ZEPHYR_BASE}/.clang-format
+            --dry-run --Werror
