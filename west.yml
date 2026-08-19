@@ -18,6 +18,9 @@ manifest:
           - cmsis_6
           - hal_stm32
           - hal_espressif
+          - mcuboot
+          - mbedtls
+          - tf-psa-crypto
 
   self:
     path: application

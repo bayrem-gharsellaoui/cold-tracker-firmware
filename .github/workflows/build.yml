@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        board: [native_sim, nucleo_u575zi_q, esp32_devkitc/esp32/procpu]
+        board: [nucleo_u575zi_q, esp32_devkitc/esp32/procpu]
 
     steps:
       - name: Checkout module repo
@@ -27,6 +27,10 @@ jobs:
         with:
           manifest-file-name: west.yml
           toolchains: arm-zephyr-eabi:xtensa-espressif_esp32_zephyr-elf
+
+      - name: Build on native_sim (without OTA)
+        run: |
+          west build -b native_sim
 
       - name: Build on ${{ matrix.board }}
         run: |
