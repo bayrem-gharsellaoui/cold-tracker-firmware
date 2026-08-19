@@ -27,6 +27,4 @@ jobs:
       - name: Check formatting
         run: |
           ZEPHYR_BASE=$(west topdir)/zephyr
-          clang-format -i src/*.c
-            --style=file:${ZEPHYR_BASE}/.clang-format
-            --dry-run --Werror
+          clang-format --style=file:${ZEPHYR_BASE}/.clang-format --dry-run --Werror src/*.c
