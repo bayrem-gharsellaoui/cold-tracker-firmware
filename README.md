@@ -87,4 +87,6 @@ Includes:
     uart:~$ mcuboot request_upgrade
 
     uart:~$ mcuboot confirm
+
+    python3 -m http.server 4242 --bind 0.0.0.0
     ```
