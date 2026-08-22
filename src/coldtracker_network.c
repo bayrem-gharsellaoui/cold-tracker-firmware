@@ -15,6 +15,10 @@
 #include "coldtracker_network.h"
 
 #ifdef CONFIG_WIFI
+
+#define WIFI_SSID     "F3D3 Hyperoptic 1Gb Fibre 2.4Ghz"
+#define WIFI_PASSWORD "6puYZJG5f63D"
+
 static int wifi_connect(struct net_if *iface)
 {
 	static struct wifi_connect_req_params params = {
