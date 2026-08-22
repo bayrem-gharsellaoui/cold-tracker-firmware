@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        board: [nucleo_u575zi_q, esp32_devkitc/esp32/procpu]
+        board: [nucleo_u575zi_q, xiao_esp32c3]
 
     steps:
       - name: Checkout module repo
@@ -30,8 +30,8 @@ jobs:
 
       - name: Build on native_sim (without OTA)
         run: |
-          west build -b native_sim
+          west build -b native_sim -p
 
-      - name: Build on ${{ matrix.board }}
+      - name: Build both application and mcuboot on ${{ matrix.board }}
         run: |
-          west build -b ${{ matrix.board }}
+          west build -b ${{ matrix.board }} -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
