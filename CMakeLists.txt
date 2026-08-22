@@ -7,6 +7,10 @@ project(cold-tracker)
 
 include(${ZEPHYR_BASE}/samples/net/common/common.cmake)
 
+if (CONFIG_USB_DEVICE_STACK_NEXT)
+  include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
+endif()
+
 target_include_directories(app PRIVATE
   include
 )

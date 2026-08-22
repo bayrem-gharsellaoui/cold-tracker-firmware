@@ -51,19 +51,21 @@ static int http_response_cb(struct http_response *rsp, enum http_final_call fina
 
 static int http_get(const char *host, const char *port, const char *path)
 {
-	struct zsock_addrinfo *addr;
+	struct zsock_addrinfo *addr = NULL;
 	struct zsock_addrinfo hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_STREAM,
 		.ai_protocol = IPPROTO_TCP,
 	};
 
+	/* Resolve DNS hostname */
 	int ret = zsock_getaddrinfo(host, port, &hints, &addr);
 	if (ret) {
 		LOG_ERR("DNS resolution failed: %d", ret);
 		return -EHOSTUNREACH;
 	}
 
+	/* Create a network socket */
 	int sock = zsock_socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (sock < 0) {
 		ret = -errno;
@@ -71,6 +73,7 @@ static int http_get(const char *host, const char *port, const char *path)
 		return ret;
 	}
 
+	/* Connect socket to the resolved address */
 	ret = zsock_connect(sock, addr->ai_addr, addr->ai_addrlen);
 	zsock_freeaddrinfo(addr);
 
@@ -93,8 +96,10 @@ static int http_get(const char *host, const char *port, const char *path)
 		.recv_buf_len = sizeof(recv_buf),
 	};
 
+	/* Send HTTP GET request */
 	ret = http_client_req(sock, &req, HTTP_TIMEOUT_MS, NULL);
 
+	/* Close socket */
 	zsock_close(sock);
 
 	return ret;
@@ -102,9 +107,11 @@ static int http_get(const char *host, const char *port, const char *path)
 
 int main(void)
 {
+	int ret;
+
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
-	int ret = network_connect();
+	ret = network_connect();
 	if (ret) {
 		LOG_ERR("Failed to initiate network connection: %d", ret);
 		return ret;
@@ -115,12 +122,8 @@ int main(void)
 	LOG_INF("ColdTracker is online");
 
 	/* HTTP / TLS / OTA from here */
-	ret = http_get("10.75.142.156", "4242", "/");
-	if (ret < 0) {
-		LOG_ERR("Local HTTP request failed: %d", ret);
-	}
-
 	ret = http_get("example.com", "80", "/");
+	// ret = http_get("10.42.0.1", "4242", "/");
 	if (ret < 0) {
 		LOG_ERR("Internet HTTP request failed: %d", ret);
 	}
@@ -130,68 +133,4 @@ int main(void)
 	}
 
 	return 0;
-}
-
-/**
- * @brief Zephyr fatal error handler.
- *
- * This function is called by the kernel when a fatal error occurs,
- * such as CPU exceptions, stack overflows, or kernel panics.
- * It logs the error details, including the faulting thread if available,
- * and halts the system.
- *
- * @param reason The reason code for the fatal error (see k_sys_fatal_error_handler documentation).
- * @param esf Pointer to the architecture-specific exception stack frame (may be NULL).
- */
-void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf)
-{
-	ARG_UNUSED(esf);
-	struct k_thread *faulting_thread = NULL;
-
-	switch (reason) {
-	case K_ERR_CPU_EXCEPTION: {
-		LOG_ERR("Generic CPU exception, not covered by other codes");
-		break;
-	}
-	case K_ERR_SPURIOUS_IRQ: {
-		LOG_ERR("Unhandled hardware interrupt");
-		break;
-	}
-	case K_ERR_STACK_CHK_FAIL: {
-		LOG_ERR("Faulting context overflowed its stack buffer");
-		/* Get the current thread that caused the fault */
-		faulting_thread = k_current_get();
-		if (faulting_thread) {
-			LOG_ERR("Fault occurred in thread: %s", k_thread_name_get(faulting_thread));
-			LOG_ERR("Thread ID: %p", (void *)faulting_thread);
-			LOG_ERR("Stack start: %p, size: %zu",
-				(void *)faulting_thread->stack_info.start,
-				faulting_thread->stack_info.size);
-		} else {
-			LOG_ERR("Could not determine faulting thread");
-		}
-		break;
-	}
-	case K_ERR_KERNEL_OOPS: {
-		LOG_ERR("Moderate severity software error");
-		break;
-	}
-	case K_ERR_KERNEL_PANIC: {
-		LOG_ERR("High severity software error");
-		break;
-	}
-	case K_ERR_ARCH_START: {
-		LOG_ERR("Arch specific fatal errors");
-		break;
-	}
-	default: {
-		LOG_ERR("Unknow reason for fatal error (%d)", reason);
-		break;
-	}
-	}
-
-	/* Disable interrupts and halt the system */
-	arch_irq_lock();
-	for (;;) { /* Spin endlessly */
-	}
 }

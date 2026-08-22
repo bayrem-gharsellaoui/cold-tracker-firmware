@@ -55,7 +55,7 @@ Includes:
     ```bash
     west build -b nucleo_u575zi_q -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
 
-    west flash
+    west flash --runner openocd
 
     # Make changes and bump version
 
@@ -90,3 +90,24 @@ Includes:
 
     python3 -m http.server 4242 --bind 0.0.0.0
     ```
+
+### USB Networking
+
+1. Connect **the Nucleo USB device port** to the laptop and make sure the USB Ethernet interface appears in **Settings → Network**.
+2. Open the gear icon for that interface, then under **IPv4** select:
+**Shared to other computers**
+You can disable IPv6 for this project to keep things simple. Click Apply.
+3. In a terminal run:
+
+    ```bash
+    sudo iptables -P FORWARD ACCEPT
+    ```
+4. Reset the board or run this on zephyr shell: `kernel reboot`
+5. ColdTracker starts DHCP automatically and NetworkManager gives it an address, gateway, and DNS information. You should see something along the lines of:
+
+```
+Network connectivity established and IP address assigned
+ColdTracker is online
+Connected to example.com:80
+HTTP status: 200
+```
