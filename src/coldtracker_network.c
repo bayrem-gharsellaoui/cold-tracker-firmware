@@ -9,13 +9,19 @@
 #include "coldtracker_network.h"
 
 #ifdef CONFIG_WIFI
+// #define WIFI_SSID "F3D3 Hyperoptic 1Gb Fibre 2.4Ghz"
+// #define WIFI_PASSWORD "6puYZJG5f63D"
+
+#define WIFI_SSID     "Galaxy S21 Ultra 5G fc54"
+#define WIFI_PASSWORD "zmga9847"
+
 static int wifi_connect(struct net_if *iface)
 {
 	static struct wifi_connect_req_params params = {
-		.ssid = (const uint8_t *)"F3D3 Hyperoptic 1Gb Fibre 2.4Ghz",
-		.ssid_length = sizeof("F3D3 Hyperoptic 1Gb Fibre 2.4Ghz") - 1,
-		.psk = (const uint8_t *)"6puYZJG5f63D",
-		.psk_length = sizeof("6puYZJG5f63D") - 1,
+		.ssid = (const uint8_t *)WIFI_SSID,
+		.ssid_length = sizeof(WIFI_SSID) - 1,
+		.psk = (const uint8_t *)WIFI_PASSWORD,
+		.psk_length = sizeof(WIFI_PASSWORD) - 1,
 		.security = WIFI_SECURITY_TYPE_PSK,
 		.channel = WIFI_CHANNEL_ANY,
 		.band = WIFI_FREQ_BAND_2_4_GHZ,

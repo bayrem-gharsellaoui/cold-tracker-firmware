@@ -43,7 +43,7 @@ static int http_response_cb(struct http_response *rsp, enum http_final_call fina
 {
 	if (rsp->body_found) {
 		LOG_INF("HTTP status: %d", rsp->http_status_code);
-		LOG_INF("Body: %.*s", rsp->body_frag_len, rsp->body_frag_start);
+		LOG_HEXDUMP_INF(rsp->body_frag_start, rsp->body_frag_len, "Body");
 	}
 
 	return 0;
@@ -115,7 +115,7 @@ int main(void)
 	LOG_INF("ColdTracker is online");
 
 	/* HTTP / TLS / OTA from here */
-	ret = http_get("192.168.1.104", "4242", "/");
+	ret = http_get("10.75.142.156", "4242", "/");
 	if (ret < 0) {
 		LOG_ERR("Local HTTP request failed: %d", ret);
 	}
