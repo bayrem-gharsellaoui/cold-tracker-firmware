@@ -30,7 +30,7 @@ Includes:
 
 #### Format code
 ```bash
-clang-format --style=file:${ZEPHYR_BASE}/.clang-format -i src/*.c
+clang-format --style=file:${ZEPHYR_BASE}/.clang-format -i src/*.c include/*.h
 ```
 
 #### Build and execute on `native_sim`

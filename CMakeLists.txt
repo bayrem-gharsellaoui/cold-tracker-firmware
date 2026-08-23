@@ -19,3 +19,7 @@ target_sources(app PRIVATE
   src/main.c
   src/coldtracker_network.c
 )
+
+target_sources_ifdef(CONFIG_BOOTLOADER_MCUBOOT app PRIVATE
+  src/coldtracker_ota.c
+)
