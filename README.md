@@ -234,3 +234,26 @@ ColdTracker is online
 Connected to example.com:80
 HTTP status: 200
 ```
+
+### Update shell command
+
+```bash
+user@debian:/workdir/application/build/application/zephyr$ python3 -m http.server 4242 --bind 0.0.0.0
+Serving HTTP on 0.0.0.0 port 4242 (http://0.0.0.0:4242/) ...
+```
+
+```bash
+uart:~$ update http://192.168.1.104:4242/coldtracker-xiao_esp32c3.signed.bin
+uart:~$ mcuboot request_upgrade
+uart:~$ kernel reboot
+uart:~$ mcuboot confirm
+uart:~$ kernel reboot
+```
+
+```bash
+uart:~$ update https://github.com/bytefull/pn532/releases/download/0.6.0/coldtracker-xiao_esp32c3.signed.bin
+uart:~$ mcuboot request_upgrade
+uart:~$ kernel reboot
+uart:~$ mcuboot confirm
+uart:~$ kernel reboot
+```
