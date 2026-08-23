@@ -70,8 +70,6 @@ static int cmd_update(const struct shell *sh, size_t argc, char **argv)
 		return ret;
 	}
 
-	shell_print(sh, "Firmware download completed");
-
 	return 0;
 }
 

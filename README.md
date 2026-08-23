@@ -60,7 +60,7 @@ Includes:
 - board partitions understanding
 - manual flashing of new firmware version in slot1
 - manual upgrade and confirmation via mcuboot shell commands
-- Make note of the needed commands:
+- in stm32 we need to erase the flash before we write to it
 
 ### nucleo_u575zi_q
 
@@ -72,7 +72,10 @@ west build -b nucleo_u575zi_q -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.con
 
 2. Full chip erase and flash the initial MCUboot + application
 
+The first time make sure to erase the flash to start cleanly
+
 ```bash
+west flash -d build --runner openocd --erase
 west flash --runner openocd
 ```
 
@@ -251,7 +254,7 @@ uart:~$ kernel reboot
 ```
 
 ```bash
-uart:~$ update https://github.com/bytefull/pn532/releases/download/0.6.0/coldtracker-xiao_esp32c3.signed.bin
+uart:~$ update https://github.com/bayrem-gharsellaoui/cold-tracker-firmware/releases/download/0.2.0/coldtracker-xiao_esp32c3.signed.bin
 uart:~$ mcuboot request_upgrade
 uart:~$ kernel reboot
 uart:~$ mcuboot confirm

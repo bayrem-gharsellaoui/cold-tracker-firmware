@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -48,3 +53,20 @@ jobs:
         working-directory: application
         run: |
           west build -b ${{ matrix.board }} -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        working-directory: application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ matrix.board }}" = "native_sim" ]; then
+            FILE="build/zephyr/coldtracker-native_sim.exe"
+          else
+            FILE="build/application/zephyr/coldtracker-${{ matrix.board }}.signed.bin"
+          fi
+
+          gh release upload \
+            "${{ github.event.release.tag_name }}" \
+            "$FILE" \
+            --clobber
