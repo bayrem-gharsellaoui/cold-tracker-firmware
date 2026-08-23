@@ -60,6 +60,12 @@ int main(void)
 }
 
 #ifdef CONFIG_BOOTLOADER_MCUBOOT
+
+#define OTA_SERVER "github.com"
+#define OTA_PORT   "443"
+#define OTA_FIRMWARE_PATH                                                                          \
+	"/<owner>/<repo>/releases/latest/download/" CONFIG_KERNEL_BIN_NAME ".signed.bin"
+
 static int cmd_update(const struct shell *sh, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
