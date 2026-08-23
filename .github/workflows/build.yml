@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,23 +16,57 @@ jobs:
 
     strategy:
       matrix:
-        board: [native_sim, nucleo_u575zi_q, esp32_devkitc/esp32/procpu]
+        board:
+          - native_sim
+          - nucleo_u575zi_q
+          - xiao_esp32c3
 
     steps:
-      - name: Checkout module repo
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: application
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
 
-      - name: Set up Zephyr
+      - name: Setup Zephyr environment
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
-          manifest-file-name: west.yml
-          toolchains: arm-zephyr-eabi:xtensa-espressif_esp32_zephyr-elf
+          app-path: application
+          toolchains: arm-zephyr-eabi:riscv64-zephyr-elf
 
-      - name: Build on ${{ matrix.board }}
+      - name: Fetch ESP32 binary blobs
+        if: matrix.board == 'xiao_esp32c3'
+        run: west blobs fetch hal_espressif
+
+      - name: Build native
+        if: matrix.board == 'native_sim'
+        working-directory: application
         run: |
-          west build -b ${{ matrix.board }}
+          west build -b ${{ matrix.board }} -p
+
+      - name: Build hardware
+        if: matrix.board != 'native_sim'
+        working-directory: application
+        run: |
+          west build -b ${{ matrix.board }} -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        working-directory: application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ matrix.board }}" = "native_sim" ]; then
+            FILE="build/zephyr/coldtracker-native_sim.exe"
+          else
+            FILE="build/application/zephyr/coldtracker-${{ matrix.board }}.signed.bin"
+          fi
+
+          gh release upload \
+            "${{ github.event.release.tag_name }}" \
+            "$FILE" \
+            --clobber

@@ -1,6 +1,15 @@
-#include <zephyr/app_version.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/app_version.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+
+#include "net_sample_common.h"
+#include "coldtracker_network.h"
+#ifdef CONFIG_BOOTLOADER_MCUBOOT
+#include "coldtracker_ota.h"
+#endif
 
 #define ANSI_COLOR_CYAN  "\033[96m"
 #define ANSI_COLOR_GREEN "\033[92m"
@@ -29,7 +38,19 @@
 
 int main(void)
 {
+	int ret;
+
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
+
+	ret = network_connect();
+	if (ret) {
+		LOG_ERR("Failed to initiate network connection: %d", ret);
+		return ret;
+	}
+
+	wait_for_network();
+
+	LOG_INF("ColdTracker is online");
 
 	while (1) {
 		k_msleep(1000);
@@ -37,3 +58,20 @@ int main(void)
 
 	return 0;
 }
+
+#if defined(CONFIG_BOOTLOADER_MCUBOOT) && defined(CONFIG_SHELL)
+static int cmd_update(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+
+	int ret = ota_update(argv[1]);
+	if (ret < 0) {
+		shell_error(sh, "Firmware download failed: %d", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+SHELL_CMD_ARG_REGISTER(update, NULL, "Download firmware update: update <url>", cmd_update, 2, 0);
+#endif /* CONFIG_BOOTLOADER_MCUBOOT && CONFIG_SHELL */
