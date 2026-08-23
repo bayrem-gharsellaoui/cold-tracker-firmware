@@ -64,14 +64,14 @@ int main(void)
 #define OTA_SERVER "github.com"
 #define OTA_PORT   "443"
 #define OTA_FIRMWARE_PATH                                                                          \
-	"/<owner>/<repo>/releases/latest/download/" CONFIG_KERNEL_BIN_NAME ".signed.bin"
+	"/bytefull/pn532/releases/download/0.6.0/" CONFIG_KERNEL_BIN_NAME ".signed.bin"
 
 static int cmd_update(const struct shell *sh, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
-	int ret = ota_download("192.168.1.104", "4242", "/zephyr.signed.bin");
+	int ret = ota_update(OTA_SERVER, OTA_PORT, OTA_FIRMWARE_PATH);
 	if (ret < 0) {
 		shell_error(sh, "Firmware download failed: %d", ret);
 		return ret;
