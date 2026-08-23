@@ -59,19 +59,12 @@ int main(void)
 	return 0;
 }
 
-#ifdef CONFIG_BOOTLOADER_MCUBOOT
-
-#define OTA_SERVER "github.com"
-#define OTA_PORT   "443"
-#define OTA_FIRMWARE_PATH                                                                          \
-	"/bytefull/pn532/releases/download/0.6.0/" CONFIG_KERNEL_BIN_NAME ".signed.bin"
-
+#if defined(CONFIG_BOOTLOADER_MCUBOOT) && defined(CONFIG_SHELL)
 static int cmd_update(const struct shell *sh, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
 
-	int ret = ota_update(OTA_SERVER, OTA_PORT, OTA_FIRMWARE_PATH);
+	int ret = ota_update(argv[1]);
 	if (ret < 0) {
 		shell_error(sh, "Firmware download failed: %d", ret);
 		return ret;
@@ -82,5 +75,5 @@ static int cmd_update(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-SHELL_CMD_REGISTER(update, NULL, "Download firmware update", cmd_update);
-#endif /* CONFIG_BOOTLOADER_MCUBOOT */
+SHELL_CMD_ARG_REGISTER(update, NULL, "Download firmware update: update <url>", cmd_update, 2, 0);
+#endif /* CONFIG_BOOTLOADER_MCUBOOT && CONFIG_SHELL */
