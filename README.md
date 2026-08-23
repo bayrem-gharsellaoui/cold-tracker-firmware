@@ -133,7 +133,11 @@ west build -b xiao_esp32c3 -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
 
 2. Flash mcuboot and application
 
+The first time make sure to erase the flash to start cleanly
+
 ```bash
+west flash --reset-type watchdog-reset --erase
+
 west flash --reset-type watchdog-reset
 ```
 
