@@ -260,3 +260,13 @@ uart:~$ kernel reboot
 uart:~$ mcuboot confirm
 uart:~$ kernel reboot
 ```
+
+### SWO Logging
+
+```bash
+west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE=overlay-swo.conf
+```
+
+```bash
+STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -R
+```
