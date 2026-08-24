@@ -1,0 +1,9 @@
+/ {
+    chosen {
+        zephyr,ppp-uart = &usart2;
+    };
+};
+
+&usart2 {
+    current-speed = <921600>;
+};
