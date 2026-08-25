@@ -8,3 +8,7 @@
     //     remote-mac-address = "00005E005301";
     // };
 };
+
+&usart1 {
+	current-speed = <3000000>;
+};

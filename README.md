@@ -268,5 +268,20 @@ west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE=overlay-swo.conf
 ```
 
 ```bash
+west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE="overlay-swo.conf;overlay-ppp.conf"
+```
+
+
+```bash
 STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -R
+```
+
+```bash
+sudo pppd /dev/ttyACM0 2000000 \
+    192.168.7.1:192.168.7.2 \
+    local \
+    noauth \
+    nocrtscts \
+    debug \
+    nodetach
 ```
