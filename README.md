@@ -286,32 +286,46 @@ sudo pppd /dev/ttyACM0 2000000 \
     nodetach
 ```
 
-### Build combinations
+## Build snippets
 
-**For Nucleo + NCM + OTA/sysbuild:**
+### Minimal
 
 ```bash
-west build -b nucleo_u575zi_q \
-  --sysbuild \
-  -- \
-  -DEXTRA_CONF_FILE="overlay-ncm.conf;overlay-ota.conf"
+west build -b native_sim -p
+west build -b nucleo_u575zi_q -p
+west build -b xiao_esp32c3 -p
 ```
 
-**For Nucleo + PPP + SWO + OTA/sysbuild:**
+### Native simulator networking
 
 ```bash
-west build -b nucleo_u575zi_q \
-  --sysbuild \
-  -- \
-  -DEXTRA_CONF_FILE="overlay-ppp.conf;overlay-swo.conf;overlay-ota.conf" \
-  -DDTC_OVERLAY_FILE=boards/nucleo_u575zi_q_ppp.overlay
+west build -b native_sim -p -S net -S nsos
 ```
 
-**For ESP32-C3 + OTA/sysbuild:**
+### Nucleo NCM
 
 ```bash
-west build -b xiao_esp32c3 \
-  --sysbuild \
-  -- \
-  -DEXTRA_CONF_FILE=overlay-ota.conf
+west build -b nucleo_u575zi_q -p -S net -S ncm
+```
+
+### Nucleo PPP + SWO
+
+```bash
+west build -b nucleo_u575zi_q -p -S net -S ppp -S swo
+```
+
+### XIAO Wi-Fi
+
+```bash
+west build -b xiao_esp32c3 -p -S net -S wifi
+```
+
+### Full OTA variants
+
+```bash
+west build -b nucleo_u575zi_q -p --sysbuild -S net -S ncm -S ota
+
+west build -b nucleo_u575zi_q -p --sysbuild -S net -S ppp -S swo -S ota
+
+west build -b xiao_esp32c3 -p --sysbuild -S net -S wifi -S ota
 ```
