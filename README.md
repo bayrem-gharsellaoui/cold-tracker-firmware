@@ -285,3 +285,33 @@ sudo pppd /dev/ttyACM0 2000000 \
     debug \
     nodetach
 ```
+
+### Build combinations
+
+**For Nucleo + NCM + OTA/sysbuild:**
+
+```bash
+west build -b nucleo_u575zi_q \
+  --sysbuild \
+  -- \
+  -DEXTRA_CONF_FILE="overlay-ncm.conf;overlay-ota.conf"
+```
+
+**For Nucleo + PPP + SWO + OTA/sysbuild:**
+
+```bash
+west build -b nucleo_u575zi_q \
+  --sysbuild \
+  -- \
+  -DEXTRA_CONF_FILE="overlay-ppp.conf;overlay-swo.conf;overlay-ota.conf" \
+  -DDTC_OVERLAY_FILE=boards/nucleo_u575zi_q_ppp.overlay
+```
+
+**For ESP32-C3 + OTA/sysbuild:**
+
+```bash
+west build -b xiao_esp32c3 \
+  --sysbuild \
+  -- \
+  -DEXTRA_CONF_FILE=overlay-ota.conf
+```

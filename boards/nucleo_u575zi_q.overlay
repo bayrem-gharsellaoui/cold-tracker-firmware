@@ -1,8 +1,9 @@
 / {
-    chosen {
-        zephyr,ppp-uart = &usart1;
-    };
+	chosen {
+		zephyr,ppp-uart = &usart1;
+	};
 
+	// Uncomment this when using overlay-ncm.conf
     // cdc_ncm_eth0: cdc_ncm_eth0 {
     //     compatible = "zephyr,cdc-ncm-ethernet";
     //     remote-mac-address = "00005E005301";
@@ -11,4 +12,5 @@
 
 &usart1 {
 	current-speed = <921600>;
+	status = "okay";
 };

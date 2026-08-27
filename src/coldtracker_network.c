@@ -12,6 +12,7 @@
 #include "sample_usbd.h"
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 
+#include "net_sample_common.h"
 #include "coldtracker_network.h"
 
 #ifdef CONFIG_WIFI
@@ -57,6 +58,25 @@ static int usb_connect(struct net_if *iface)
 }
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 
+#ifdef CONFIG_NET_PPP
+
+#define PPP_LINK_SETTLE_TIME_MS 5
+
+static int ppp_connect(struct net_if *iface)
+{
+	ARG_UNUSED(iface);
+
+	/* PPP starts automatically. */
+	return 0;
+}
+
+static void ppp_network_ready(void)
+{
+	k_msleep(PPP_LINK_SETTLE_TIME_MS);
+}
+#endif /* CONFIG_NET_PPP */
+
+
 int network_connect(void)
 {
 	struct net_if *iface = net_if_get_default();
@@ -74,4 +94,13 @@ int network_connect(void)
 	))
 
 	return 0;
+}
+
+void network_wait_ready(void)
+{
+	wait_for_network();
+
+	IF_ENABLED(CONFIG_NET_PPP, (
+		ppp_network_ready();
+	))
 }

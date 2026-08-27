@@ -5,7 +5,6 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-#include "net_sample_common.h"
 #include "coldtracker_network.h"
 #ifdef CONFIG_BOOTLOADER_MCUBOOT
 #include "coldtracker_ota.h"
@@ -48,7 +47,7 @@ int main(void)
 		return ret;
 	}
 
-	wait_for_network();
+	network_wait_ready();
 
 	LOG_INF("ColdTracker is online");
 
