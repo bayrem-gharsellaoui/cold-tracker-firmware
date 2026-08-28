@@ -24,22 +24,22 @@ jobs:
 
           # Native simulator networking
           - board: native_sim
-            snippets: "-S net -S nsos"
+            snippets: "-S net -S nsos -- -DSNIPPET_ROOT=\"$PWD\""
             sysbuild: ""
 
           # Nucleo USB NCM + OTA
           - board: nucleo_u575zi_q
-            snippets: "-S net -S ncm -S ota"
+            snippets: "-S net -S ncm -S ota -- -DSNIPPET_ROOT=\"$PWD\""
             sysbuild: "--sysbuild"
 
           # Nucleo PPP + SWO + OTA
           - board: nucleo_u575zi_q
-            snippets: "-S net -S ppp -S swo -S ota"
+            snippets: "-S net -S ppp -S swo -S ota -- -DSNIPPET_ROOT=\"$PWD\""
             sysbuild: "--sysbuild"
 
           # XIAO Wi-Fi + OTA
           - board: xiao_esp32c3
-            snippets: "-S net -S wifi -S ota"
+            snippets: "-S net -S wifi -S ota -- -DSNIPPET_ROOT=\"$PWD\""
             sysbuild: "--sysbuild"
 
     steps:
