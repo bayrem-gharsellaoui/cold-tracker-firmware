@@ -55,7 +55,7 @@ west flash --reset-type watchdog-reset
 
 Includes:
 - mcuboot bootloader integration
-- ota ovelay configuration
+- ota overlay configuration
 - sysbuild configuration
 - board partitions understanding
 - manual flashing of new firmware version in slot1
@@ -296,40 +296,40 @@ west build -b nucleo_u575zi_q -p
 west build -b xiao_esp32c3 -p
 ```
 
-### Native simulator networking
+### Native simulator networking with TLS
 
 ```bash
-west build -b native_sim -p -S net -S nsos -- -DSNIPPET_ROOT="$PWD"
+west build -b native_sim -p -S net -S nsos -S tls -- -DSNIPPET_ROOT="$PWD"
 ```
 
-### Nucleo NCM
+### Nucleo NCM with TLS
 
 ```bash
-west build -b nucleo_u575zi_q -p -S net -S ncm -- -DSNIPPET_ROOT="$PWD"
+west build -b nucleo_u575zi_q -p -S net -S ncm -S tls -- -DSNIPPET_ROOT="$PWD"
 ```
 
-### Nucleo PPP + SWO
+### Nucleo PPP with TLS + SWO
 
 ```bash
-west build -b nucleo_u575zi_q -p -S net -S ppp -S swo -- -DSNIPPET_ROOT="$PWD"
+west build -b nucleo_u575zi_q -p -S net -S ppp -S tls -S swo -- -DSNIPPET_ROOT="$PWD"
 ```
 
-### XIAO Wi-Fi
+### XIAO Wi-Fi with TLS
 
 ```bash
-west build -b xiao_esp32c3 -p -S net -S wifi -- -DSNIPPET_ROOT="$PWD"
+west build -b xiao_esp32c3 -p -S net -S wifi -S tls -- -DSNIPPET_ROOT="$PWD"
 ```
 
-### Full OTA variants
+### Full OTA variants with TLS
 
 ```bash
-west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ncm;ota"
-```
-
-```bash
-west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;swo;ota"
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ncm;tls;ota"
 ```
 
 ```bash
-west build -b xiao_esp32c3 -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;wifi;ota"
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;tls;swo;ota"
+```
+
+```bash
+west build -b xiao_esp32c3 -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;wifi;tls;ota"
 ```
