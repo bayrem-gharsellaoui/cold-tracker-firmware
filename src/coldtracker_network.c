@@ -93,6 +93,10 @@ int network_connect(void)
 		return wifi_connect(iface);
 	))
 
+	IF_ENABLED(CONFIG_NET_PPP, (
+		return ppp_connect(iface);
+	))
+
 	return 0;
 }
 
