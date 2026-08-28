@@ -29,21 +29,21 @@ jobs:
             sysbuild: false
             release: true
 
-          # Nucleo USB NCM + OTA
+          # Nucleo USB NCM + TLS + OTA
           - board: nucleo_u575zi_q
-            snippets: "net;ncm;ota"
+            snippets: "net;ncm;tls;ota"
             sysbuild: true
             release: true
 
-          # Nucleo PPP + SWO + OTA
+          # Nucleo PPP + TLS + SWO + OTA
           - board: nucleo_u575zi_q
-            snippets: "net;ppp;swo;ota"
+            snippets: "net;ppp;tls;swo;ota"
             sysbuild: true
             release: true
 
-          # XIAO Wi-Fi + OTA
+          # XIAO Wi-Fi + TLS + OTA
           - board: xiao_esp32c3
-            snippets: "net;wifi;ota"
+            snippets: "net;wifi;tls;ota"
             sysbuild: true
             release: true
 
