@@ -2,4 +2,3 @@ name: ota
 
 append:
   EXTRA_CONF_FILE: ota.conf
-  SB_EXTRA_CONF_FILE: sysbuild.conf
