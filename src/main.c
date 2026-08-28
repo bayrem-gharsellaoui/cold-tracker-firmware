@@ -41,7 +41,7 @@ int main(void)
 {
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
-	IF_ENABLED(CONFIG_USB_DEVICE_STACK_NEXT, (
+	IF_ENABLED(CONFIG_NETWORKING, (
 		int ret = network_connect();
 		if (ret) {
 			LOG_ERR("Failed to initiate network connection: %d", ret);
