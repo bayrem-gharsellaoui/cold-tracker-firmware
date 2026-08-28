@@ -273,11 +273,11 @@ west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE="overlay-swo.conf;o
 
 
 ```bash
-STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -R
+STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -RA
 ```
 
 ```bash
-sudo pppd /dev/ttyACM0 2000000 \
+sudo pppd /dev/ttyACM0 921600 \
     192.168.7.1:192.168.7.2 \
     local \
     noauth \
@@ -299,33 +299,37 @@ west build -b xiao_esp32c3 -p
 ### Native simulator networking
 
 ```bash
-west build -b native_sim -p -S net -S nsos
+west build -b native_sim -p -S net -S nsos -- -DSNIPPET_ROOT="$PWD"
 ```
 
 ### Nucleo NCM
 
 ```bash
-west build -b nucleo_u575zi_q -p -S net -S ncm
+west build -b nucleo_u575zi_q -p -S net -S ncm -- -DSNIPPET_ROOT="$PWD"
 ```
 
 ### Nucleo PPP + SWO
 
 ```bash
-west build -b nucleo_u575zi_q -p -S net -S ppp -S swo
+west build -b nucleo_u575zi_q -p -S net -S ppp -S swo -- -DSNIPPET_ROOT="$PWD"
 ```
 
 ### XIAO Wi-Fi
 
 ```bash
-west build -b xiao_esp32c3 -p -S net -S wifi
+west build -b xiao_esp32c3 -p -S net -S wifi -- -DSNIPPET_ROOT="$PWD"
 ```
 
 ### Full OTA variants
 
 ```bash
-west build -b nucleo_u575zi_q -p --sysbuild -S net -S ncm -S ota
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ncm;ota"
+```
 
-west build -b nucleo_u575zi_q -p --sysbuild -S net -S ppp -S swo -S ota
+```bash
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;swo;ota"
+```
 
-west build -b xiao_esp32c3 -p --sysbuild -S net -S wifi -S ota
+```bash
+west build -b xiao_esp32c3 -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;wifi;ota"
 ```
