@@ -16,10 +16,36 @@ jobs:
 
     strategy:
       matrix:
-        board:
-          - native_sim
-          - nucleo_u575zi_q
-          - xiao_esp32c3
+        include:
+          # Minimal firmware
+          - board: native_sim
+            snippets: ""
+            sysbuild: false
+            release: false
+
+          # Native simulator networking
+          - board: native_sim
+            snippets: "net;nsos"
+            sysbuild: false
+            release: true
+
+          # Nucleo USB NCM + OTA
+          - board: nucleo_u575zi_q
+            snippets: "net;ncm;ota"
+            sysbuild: true
+            release: true
+
+          # Nucleo PPP + SWO + OTA
+          - board: nucleo_u575zi_q
+            snippets: "net;ppp;swo;ota"
+            sysbuild: true
+            release: true
+
+          # XIAO Wi-Fi + OTA
+          - board: xiao_esp32c3
+            snippets: "net;wifi;ota"
+            sysbuild: true
+            release: true
 
     steps:
       - name: Checkout repository
@@ -38,32 +64,57 @@ jobs:
           app-path: application
           toolchains: arm-zephyr-eabi:riscv64-zephyr-elf
 
+      # Required by the ESP32 HAL
       - name: Fetch ESP32 binary blobs
         if: matrix.board == 'xiao_esp32c3'
         run: west blobs fetch hal_espressif
 
-      - name: Build native
-        if: matrix.board == 'native_sim'
+      - name: Build
         working-directory: application
         run: |
-          west build -b ${{ matrix.board }} -p
+          if [ "${{ matrix.sysbuild }}" = "true" ]; then
+            # Scope snippets to the ColdTracker image, not MCUboot
+            west build \
+              -b ${{ matrix.board }} \
+              -p \
+              --sysbuild \
+              -- \
+              -DSNIPPET_ROOT="$PWD" \
+              -Dapplication_SNIPPET="${{ matrix.snippets }}"
+          else
+            SNIPPET_ARGS=()
 
-      - name: Build hardware
-        if: matrix.board != 'native_sim'
-        working-directory: application
-        run: |
-          west build -b ${{ matrix.board }} -p --sysbuild -- -DEXTRA_CONF_FILE=overlay-ota.conf
+            IFS=';' read -ra SNIPPETS <<< "${{ matrix.snippets }}"
+            for snippet in "${SNIPPETS[@]}"; do
+              if [ -n "$snippet" ]; then
+                SNIPPET_ARGS+=("-S" "$snippet")
+              fi
+            done
+
+            west build \
+              -b ${{ matrix.board }} \
+              -p \
+              "${SNIPPET_ARGS[@]}" \
+              -- \
+              -DSNIPPET_ROOT="$PWD"
+          fi
 
       - name: Upload release asset
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && matrix.release == true
         working-directory: application
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ matrix.board }}" = "native_sim" ]; then
-            FILE="build/zephyr/coldtracker-native_sim.exe"
+            FILE=$(find build/zephyr \
+              -maxdepth 1 \
+              -name 'coldtracker-*.exe' \
+              -print -quit)
           else
-            FILE="build/application/zephyr/coldtracker-${{ matrix.board }}.signed.bin"
+            FILE=$(find build/application/zephyr \
+              -maxdepth 1 \
+              -name 'coldtracker-*.signed.bin' \
+              -print -quit)
           fi
 
           gh release upload \

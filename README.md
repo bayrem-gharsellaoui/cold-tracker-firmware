@@ -260,3 +260,72 @@ uart:~$ kernel reboot
 uart:~$ mcuboot confirm
 uart:~$ kernel reboot
 ```
+
+### SWO Logging
+
+```bash
+west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE=overlay-swo.conf
+```
+
+```bash
+west build -p always -b nucleo_u575zi_q -- -DEXTRA_CONF_FILE="overlay-swo.conf;overlay-ppp.conf"
+```
+
+
+```bash
+STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -R
+```
+
+```bash
+sudo pppd /dev/ttyACM0 2000000 \
+    192.168.7.1:192.168.7.2 \
+    local \
+    noauth \
+    nocrtscts \
+    debug \
+    nodetach
+```
+
+## Build snippets
+
+### Minimal
+
+```bash
+west build -b native_sim -p
+west build -b nucleo_u575zi_q -p
+west build -b xiao_esp32c3 -p
+```
+
+### Native simulator networking
+
+```bash
+west build -b native_sim -p -S net -S nsos
+```
+
+### Nucleo NCM
+
+```bash
+west build -b nucleo_u575zi_q -p -S net -S ncm
+```
+
+### Nucleo PPP + SWO
+
+```bash
+west build -b nucleo_u575zi_q -p -S net -S ppp -S swo
+```
+
+### XIAO Wi-Fi
+
+```bash
+west build -b xiao_esp32c3 -p -S net -S wifi
+```
+
+### Full OTA variants
+
+```bash
+west build -b nucleo_u575zi_q -p --sysbuild -S net -S ncm -S ota
+
+west build -b nucleo_u575zi_q -p --sysbuild -S net -S ppp -S swo -S ota
+
+west build -b xiao_esp32c3 -p --sysbuild -S net -S wifi -S ota
+```

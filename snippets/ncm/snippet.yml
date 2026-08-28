@@ -1,0 +1,10 @@
+name: ncm
+
+append:
+  EXTRA_CONF_FILE: ncm.conf
+
+boards:
+  nucleo_u575zi_q/stm32u575xx:
+    append:
+      EXTRA_CONF_FILE: boards/nucleo_u575zi_q.conf
+      EXTRA_DTC_OVERLAY_FILE: boards/nucleo_u575zi_q.overlay

@@ -5,8 +5,9 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-#include "net_sample_common.h"
+#ifdef CONFIG_NETWORKING
 #include "coldtracker_network.h"
+#endif
 #ifdef CONFIG_BOOTLOADER_MCUBOOT
 #include "coldtracker_ota.h"
 #endif
@@ -38,19 +39,17 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 int main(void)
 {
-	int ret;
-
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
-	ret = network_connect();
-	if (ret) {
-		LOG_ERR("Failed to initiate network connection: %d", ret);
-		return ret;
-	}
-
-	wait_for_network();
-
-	LOG_INF("ColdTracker is online");
+	IF_ENABLED(CONFIG_NETWORKING, (
+		int ret = network_connect();
+		if (ret) {
+			LOG_ERR("Failed to initiate network connection: %d", ret);
+			return ret;
+		}
+		network_wait_ready();
+		LOG_INF("ColdTracker is online");
+	))
 
 	while (1) {
 		k_msleep(1000);
