@@ -76,7 +76,6 @@ static void ppp_network_ready(void)
 }
 #endif /* CONFIG_NET_PPP */
 
-
 int network_connect(void)
 {
 	struct net_if *iface = net_if_get_default();
