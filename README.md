@@ -311,7 +311,7 @@ west build -b nucleo_u575zi_q -p -S net -S ncm -S tls -- -DSNIPPET_ROOT="$PWD"
 ### Nucleo PPP with TLS + SWO
 
 ```bash
-west build -b nucleo_u575zi_q -p -S net -S ppp -S tls -S swo -- -DSNIPPET_ROOT="$PWD"
+west build -b nucleo_u575zi_q -p -S net -S ppp -S telnet -S tls -S swo -- -DSNIPPET_ROOT="$PWD"
 ```
 
 ### XIAO Wi-Fi with TLS
@@ -327,7 +327,7 @@ west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplicati
 ```
 
 ```bash
-west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;tls;swo;ota"
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;tls;telnet;swo;ota"
 ```
 
 ```bash

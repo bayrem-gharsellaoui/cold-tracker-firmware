@@ -173,6 +173,7 @@ static int http_get(const char *url, http_response_cb_t response_cb,
 		LOG_ERR("DNS resolution failed: %d", ret);
 		return -EHOSTUNREACH;
 	}
+	LOG_DBG("Resolved %s:%s", target.host, target.port);
 
 	/* Create a network socket. */
 	if (target.tls) {
@@ -191,6 +192,7 @@ static int http_get(const char *url, http_response_cb_t response_cb,
 		zsock_freeaddrinfo(addr);
 		return ret;
 	}
+	LOG_DBG("Created socket %d for %s", sock, target.host);
 
 #ifdef CONFIG_NET_SOCKETS_SOCKOPT_TLS
 	if (target.tls) {
@@ -215,6 +217,7 @@ static int http_get(const char *url, http_response_cb_t response_cb,
 #endif /* CONFIG_NET_SOCKETS_SOCKOPT_TLS */
 
 	/* Connect socket to the resolved address. */
+	LOG_DBG("Connecting socket %d to %s:%s", sock, target.host, target.port);
 	ret = zsock_connect(sock, addr->ai_addr, addr->ai_addrlen);
 	if (ret < 0) {
 		ret = -errno;
@@ -241,6 +244,7 @@ static int http_get(const char *url, http_response_cb_t response_cb,
 
 cleanup:
 	/* Close socket and release DNS result. */
+	LOG_DBG("Closing socket %d", sock);
 	zsock_close(sock);
 	zsock_freeaddrinfo(addr);
 
