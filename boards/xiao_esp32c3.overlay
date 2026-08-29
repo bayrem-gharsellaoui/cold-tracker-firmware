@@ -1,0 +1,9 @@
+/ {
+	aliases {
+		coldtracker-temp = &coretemp;
+	};
+};
+
+&coretemp {
+	status = "okay";
+};
