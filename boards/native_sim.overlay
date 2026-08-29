@@ -1,0 +1,11 @@
+/ {
+	linux_temp: linux_temp {
+		compatible = "zephyr,native-linux-temp";
+		path = "/sys/class/hwmon/hwmon6/temp1_input";
+		status = "okay";
+	};
+
+	aliases {
+		coldtracker-temp = &linux_temp;
+	};
+};
