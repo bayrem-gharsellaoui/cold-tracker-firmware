@@ -2,8 +2,35 @@
 	aliases {
 		coldtracker-temp = &coretemp;
 	};
+
+	chosen {
+		zephyr,settings-partition = &device_settings_partition;
+	};
 };
 
 &coretemp {
 	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		/* Disable the old storage_partition */
+		storage_partition: partition@3b0000 {
+			status = "disabled";
+		};
+
+		/* For Settings (device config) - 16 KB = 4 erase blocks */
+		device_settings_partition: partition@3b0000 {
+			compatible = "zephyr,mapped-partition";
+			label = "device-settings";
+			reg = <0x3b0000 0x4000>;
+		};
+
+		/* For FCB sensor data - 176 KB = 44 erase blocks */
+		sensor_data_partition: partition@3b4000 {
+			compatible = "zephyr,mapped-partition";
+			label = "sensor-data";
+			reg = <0x3b4000 0x2c000>;
+		};
+	};
 };

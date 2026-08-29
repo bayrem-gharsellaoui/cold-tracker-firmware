@@ -1,11 +1,43 @@
 / {
+	aliases {
+		coldtracker-temp = &linux_temp;
+	};
+
+    chosen {
+        zephyr,settings-partition = &device_settings_partition;
+    };
+
 	linux_temp: linux_temp {
 		compatible = "zephyr,native-linux-temp";
 		path = "/sys/class/hwmon/hwmon6/temp1_input";
 		status = "okay";
 	};
+};
 
-	aliases {
-		coldtracker-temp = &linux_temp;
-	};
+&flash0 {
+    partitions {
+        /* Disable scratch original partition */
+        scratch_partition: partition@de000 {
+            status = "disabled";
+        };
+
+        /* Disable storage original partition */
+        storage_partition: partition@fc000 {
+            status = "disabled";
+        };
+
+        /* For Settings (device config) - 16 KB = 4 erase blocks */
+        device_settings_partition: partition@de000 {
+            compatible = "zephyr,mapped-partition";
+            label = "device-settings";
+            reg = <0xde000 0x4000>;
+        };
+
+        /* For FCB sensor data - 120 KB = 30 erase blocks */
+        sensor_data_partition: partition@e2000 {
+            compatible = "zephyr,mapped-partition";
+            label = "sensor-data";
+            reg = <0xe2000 0x1e000>;
+        };
+    };
 };

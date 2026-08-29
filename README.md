@@ -333,3 +333,12 @@ west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplicati
 ```bash
 west build -b xiao_esp32c3 -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;wifi;tls;ota"
 ```
+
+## Milestone 3 - Reading and persisting sensor data and device settings
+
+Includes:
+- setup partitions for settings and sensor data
+- setup sensor dts on the different targets
+- read sensor data on the different targets using same device alias
+- write data in Flash Circular Buffer (FCB)
+- read data from Flash Circular Buffer (FCB)
