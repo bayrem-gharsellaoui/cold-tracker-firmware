@@ -5,6 +5,7 @@
 
 	chosen {
 		zephyr,settings-partition = &device_settings_partition;
+		zephyr,rtc = &counter_rtc;
 	};
 };
 
@@ -32,5 +33,16 @@
 			label = "sensor-data";
 			reg = <0x3b4000 0x2c000>;
 		};
+	};
+};
+
+/* Enable the underlying ESP32 RTC timer and attach the virtual RTC child node */
+&rtc_timer {
+	status = "okay";
+
+	counter_rtc: counter-rtc {
+		compatible = "zephyr,rtc-counter";
+		status = "okay";
+		alarms-count = <0>;
 	};
 };

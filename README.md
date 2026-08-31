@@ -340,5 +340,5 @@ Includes:
 - setup partitions for settings and sensor data
 - setup sensor dts on the different targets
 - read sensor data on the different targets using same device alias
-- write data in Flash Circular Buffer (FCB)
-- read data from Flash Circular Buffer (FCB)
+
+## Milestone 4 - Temperature & Time
