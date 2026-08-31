@@ -5,6 +5,7 @@
 
     chosen {
         zephyr,settings-partition = &device_settings_partition;
+		zephyr,rtc = &rtc;
     };
 
 	linux_temp: linux_temp {
