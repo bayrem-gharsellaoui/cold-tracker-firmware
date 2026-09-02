@@ -277,6 +277,27 @@ STM32_Programmer_CLI -c port=SWD -SWV freq=160 portnumber=0 -RA
 ```
 
 ```bash
+# 1. Find Internet interface
+ip route | grep default
+```
+
+```bash
+# 2. Enable routing
+sudo sysctl -w net.ipv4.ip_forward=1
+```
+
+```bash
+# 3. NAT PPP traffic through laptop
+sudo iptables -t nat -A POSTROUTING -o wlp0s20f3 -j MASQUERADE
+```
+
+```bash
+# 4. Allow forwarding
+sudo iptables -A FORWARD -i ppp0 -o wlp0s20f3 -j ACCEPT
+sudo iptables -A FORWARD -i wlp0s20f3 -o ppp0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+```
+
+```bash
 sudo pppd /dev/ttyACM0 921600 \
     192.168.7.1:192.168.7.2 \
     local \
@@ -314,6 +335,12 @@ west build -b nucleo_u575zi_q -p -S net -S ncm -S tls -- -DSNIPPET_ROOT="$PWD"
 west build -b nucleo_u575zi_q -p -S net -S ppp -S telnet -S tls -S swo -- -DSNIPPET_ROOT="$PWD"
 ```
 
+### Nucleo PPP with TLS + RTT
+
+```bash
+west build -b nucleo_u575zi_q -p -S net -S ppp -S tls -S rtt -- -DSNIPPET_ROOT="$PWD"
+```
+
 ### XIAO Wi-Fi with TLS
 
 ```bash
@@ -331,6 +358,10 @@ west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplicati
 ```
 
 ```bash
+west build -b nucleo_u575zi_q -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;ppp;tls;rtt;ota"
+```
+
+```bash
 west build -b xiao_esp32c3 -p --sysbuild -- -DSNIPPET_ROOT="$PWD" -Dapplication_SNIPPET="net;wifi;tls;ota"
 ```
 
@@ -342,3 +373,19 @@ Includes:
 - read sensor data on the different targets using same device alias
 
 ## Milestone 4 - Temperature & Time
+
+### RTT
+
+Start OpenOCD and the RTT server for the application image
+
+```bash
+west rtt --domain application --runner openocd
+```
+
+Open the OpenOCD command console and tell OpenOCD to search for and connect to the RTT control block
+
+```bash
+telnet localhost 4444
+
+rtt start
+```

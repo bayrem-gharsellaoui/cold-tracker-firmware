@@ -35,9 +35,9 @@ jobs:
             sysbuild: true
             release: true
 
-          # Nucleo PPP + TLS + SWO + OTA
+          # Nucleo PPP + TLS + RTT + OTA
           - board: nucleo_u575zi_q
-            snippets: "net;ppp;tls;swo;ota"
+            snippets: "net;ppp;tls;ota;rtt"
             sysbuild: true
             release: true
 
