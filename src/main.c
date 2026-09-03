@@ -6,7 +6,6 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #ifdef CONFIG_NETWORKING
 #include "coldtracker_network.h"
-#include "coldtracker_time.h"
 #endif
 
 #define ANSI_COLOR_CYAN  "\033[96m"
@@ -39,7 +38,6 @@ int main(void)
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
 	IF_ENABLED(CONFIG_NETWORKING, (
-		time_restore_from_rtc();
 		int ret = network_connect();
 		if (ret < 0) {
 			LOG_ERR("Failed to initiate network connection: %d", ret);

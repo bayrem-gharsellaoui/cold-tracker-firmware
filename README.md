@@ -303,6 +303,8 @@ sudo pppd /dev/ttyACM0 921600 \
     local \
     noauth \
     nocrtscts \
+    ms-dns 1.1.1.1 \
+    ms-dns 8.8.8.8 \
     debug \
     nodetach
 ```
