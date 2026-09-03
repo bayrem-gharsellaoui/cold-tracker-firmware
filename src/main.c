@@ -1,15 +1,11 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/app_version.h>
-#include <zephyr/shell/shell.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #ifdef CONFIG_NETWORKING
 #include "coldtracker_network.h"
-#endif
-#ifdef CONFIG_BOOTLOADER_MCUBOOT
-#include "coldtracker_ota.h"
 #endif
 
 #define ANSI_COLOR_CYAN  "\033[96m"
@@ -43,7 +39,7 @@ int main(void)
 
 	IF_ENABLED(CONFIG_NETWORKING, (
 		int ret = network_connect();
-		if (ret) {
+		if (ret < 0) {
 			LOG_ERR("Failed to initiate network connection: %d", ret);
 			return ret;
 		}
@@ -57,20 +53,3 @@ int main(void)
 
 	return 0;
 }
-
-#if defined(CONFIG_BOOTLOADER_MCUBOOT) && defined(CONFIG_SHELL)
-static int cmd_update(const struct shell *sh, size_t argc, char **argv)
-{
-	ARG_UNUSED(argc);
-
-	int ret = ota_update(argv[1]);
-	if (ret < 0) {
-		shell_error(sh, "Firmware download failed: %d", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-SHELL_CMD_ARG_REGISTER(update, NULL, "Download firmware update: update <url>", cmd_update, 2, 0);
-#endif /* CONFIG_BOOTLOADER_MCUBOOT && CONFIG_SHELL */

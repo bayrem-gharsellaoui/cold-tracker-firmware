@@ -21,6 +21,7 @@ manifest:
           - mcuboot
           - mbedtls
           - tf-psa-crypto
+          - segger
 
   self:
     path: application

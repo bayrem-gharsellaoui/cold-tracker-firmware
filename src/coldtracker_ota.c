@@ -6,6 +6,7 @@
 #include <zephyr/net/http/client.h>
 #include <zephyr/net/http/parser.h>
 #include <zephyr/net/http/parser_url.h>
+#include <zephyr/shell/shell.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ota, LOG_LEVEL_DBG);
 
@@ -331,3 +332,20 @@ int ota_update(const char *url)
 
 	return -EIO;
 }
+
+#ifdef CONFIG_SHELL
+static int cmd_update(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+
+	int ret = ota_update(argv[1]);
+	if (ret < 0) {
+		shell_error(sh, "Firmware download failed: %d", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+SHELL_CMD_ARG_REGISTER(update, NULL, "Download firmware update: update <url>", cmd_update, 2, 0);
+#endif /* CONFIG_SHELL */

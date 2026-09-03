@@ -2,3 +2,11 @@ name: net
 
 append:
   EXTRA_CONF_FILE: net.conf
+
+boards:
+  xiao_esp32c3/esp32c3:
+    append:
+      EXTRA_CONF_FILE: boards/xiao_esp32c3.conf
+  native_sim/native:
+    append:
+      EXTRA_CONF_FILE: boards/native_sim.conf

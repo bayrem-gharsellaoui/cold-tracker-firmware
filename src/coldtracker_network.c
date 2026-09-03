@@ -1,8 +1,11 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/net_if.h>
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_event.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(network, LOG_LEVEL_DBG);
 
 #ifdef CONFIG_WIFI
-#include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/wifi_mgmt.h>
 #endif /* CONFIG_WIFI */
 
@@ -12,25 +15,61 @@
 #include "sample_usbd.h"
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 
-#include "net_sample_common.h"
 #include "coldtracker_network.h"
 
-#ifdef CONFIG_WIFI
+static K_SEM_DEFINE(network_ready_sem, 0, 1);
 
-#define WIFI_SSID     "F3D3 Hyperoptic 1Gb Fibre 2.4Ghz"
-#define WIFI_PASSWORD "6puYZJG5f63D"
+#ifdef CONFIG_NET_PPP
+#define NETWORK_READY_EVENT NET_EVENT_DNS_SERVERS_RECONFIGURED
+#else
+#define NETWORK_READY_EVENT NET_EVENT_L4_CONNECTED
+#endif
+
+static void net_event_handler(uint64_t event, struct net_if *iface, void *info, size_t info_length,
+			      void *user_data)
+{
+	if (event == NETWORK_READY_EVENT) {
+		k_sem_give(&network_ready_sem);
+	}
+}
+
+NET_MGMT_REGISTER_EVENT_HANDLER(coldtracker_net_event_handler, NETWORK_READY_EVENT,
+				net_event_handler, NULL);
+
+#ifdef CONFIG_WIFI
+static struct net_mgmt_event_callback wifi_mgmt_cb;
+
+static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event,
+			       struct net_if *iface)
+{
+	if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT) {
+		const struct wifi_status *status = (const struct wifi_status *)cb->info;
+
+		if (status->status == 0) {
+			LOG_INF("Wi-Fi connected");
+		} else {
+			LOG_ERR("Wi-Fi connect failed, status: %d", status->status);
+		}
+	}
+}
 
 static int wifi_connect(struct net_if *iface)
 {
+	net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_event_handler,
+				     NET_EVENT_WIFI_CONNECT_RESULT);
+	net_mgmt_add_event_callback(&wifi_mgmt_cb);
+
 	static struct wifi_connect_req_params params = {
-		.ssid = (const uint8_t *)WIFI_SSID,
-		.ssid_length = sizeof(WIFI_SSID) - 1,
-		.psk = (const uint8_t *)WIFI_PASSWORD,
-		.psk_length = sizeof(WIFI_PASSWORD) - 1,
+		.ssid = (const uint8_t *)CONFIG_WIFI_CREDENTIALS_STATIC_SSID,
+		.ssid_length = sizeof(CONFIG_WIFI_CREDENTIALS_STATIC_SSID) - 1,
+		.psk = (const uint8_t *)CONFIG_WIFI_CREDENTIALS_STATIC_PASSWORD,
+		.psk_length = sizeof(CONFIG_WIFI_CREDENTIALS_STATIC_PASSWORD) - 1,
 		.security = WIFI_SECURITY_TYPE_PSK,
 		.channel = WIFI_CHANNEL_ANY,
 		.band = WIFI_FREQ_BAND_2_4_GHZ,
 	};
+
+	LOG_INF("Connecting to SSID: %s", CONFIG_WIFI_CREDENTIALS_STATIC_SSID);
 
 	return net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params, sizeof(params));
 }
@@ -59,20 +98,12 @@ static int usb_connect(struct net_if *iface)
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 
 #ifdef CONFIG_NET_PPP
-
-#define PPP_LINK_SETTLE_TIME_MS 5
-
 static int ppp_connect(struct net_if *iface)
 {
 	ARG_UNUSED(iface);
 
 	/* PPP starts automatically. */
 	return 0;
-}
-
-static void ppp_network_ready(void)
-{
-	k_msleep(PPP_LINK_SETTLE_TIME_MS);
 }
 #endif /* CONFIG_NET_PPP */
 
@@ -101,9 +132,9 @@ int network_connect(void)
 
 void network_wait_ready(void)
 {
-	wait_for_network();
+	LOG_INF("Waiting for network...");
 
-	IF_ENABLED(CONFIG_NET_PPP, (
-		ppp_network_ready();
-	))
+	k_sem_take(&network_ready_sem, K_FOREVER);
+
+	LOG_INF("Network is ready");
 }
