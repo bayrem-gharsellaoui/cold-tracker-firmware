@@ -27,34 +27,3 @@ static void sensing_thread_entry(void *arg1, void *arg2, void *arg3)
 		k_msleep(1000);
 	}
 }
-
-#if defined(CONFIG_SHELL)
-static int cmd_temp_handler_cb(const struct shell *sh, size_t argc, char **argv)
-{
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	int ret;
-	struct sensor_value temp = {0};
-	const struct device *const dev = DEVICE_DT_GET(DT_ALIAS(coldtracker_temp));
-
-	ret = sensor_sample_fetch_chan(dev, SENSOR_CHAN_DIE_TEMP);
-	if (ret < 0) {
-		shell_error(sh, "Failed to fetch temperature: %d", ret);
-		return ret;
-	}
-
-	ret = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP, &temp);
-	if (ret < 0) {
-		shell_error(sh, "Failed to get temperature: %d", ret);
-		return ret;
-	}
-
-	shell_print(sh, "%d.%02d", temp.val1, temp.val2);
-
-	return 0;
-}
-
-SHELL_CMD_ARG_REGISTER(get_temp, NULL, "Read coldtracker temperature in celsius",
-		       cmd_temp_handler_cb, 1, 0);
-#endif /* CONFIG_SHELL */
