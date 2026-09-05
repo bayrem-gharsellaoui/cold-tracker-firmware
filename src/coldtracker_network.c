@@ -1,7 +1,11 @@
+#include <errno.h>
+
 #include <zephyr/kernel.h>
+#include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
-#include <zephyr/net/net_event.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(network, LOG_LEVEL_DBG);
 
@@ -15,26 +19,54 @@ LOG_MODULE_REGISTER(network, LOG_LEVEL_DBG);
 #include "sample_usbd.h"
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 
-#include "coldtracker_network.h"
+#include "coldtracker_messages.h"
 
-static K_SEM_DEFINE(network_ready_sem, 0, 1);
+#define NETWORK_EVENT_UP   BIT(0)
+#define NETWORK_EVENT_DOWN BIT(1)
 
-#ifdef CONFIG_NET_PPP
-#define NETWORK_READY_EVENT NET_EVENT_DNS_SERVERS_RECONFIGURED
-#else
-#define NETWORK_READY_EVENT NET_EVENT_L4_CONNECTED
-#endif
+K_EVENT_DEFINE(network_events);
 
-static void net_event_handler(uint64_t event, struct net_if *iface, void *info, size_t info_length,
-			      void *user_data)
+static void publish_network_state(enum network_state state)
 {
-	if (event == NETWORK_READY_EVENT) {
-		k_sem_give(&network_ready_sem);
+	struct network_status_msg msg = {
+		.state = state,
+	};
+
+	int ret = zbus_chan_pub(&network_status_chan, &msg, K_MSEC(100));
+	if (ret < 0) {
+		LOG_ERR("Failed to publish network state: %d", ret);
 	}
 }
 
-NET_MGMT_REGISTER_EVENT_HANDLER(coldtracker_net_event_handler, NETWORK_READY_EVENT,
-				net_event_handler, NULL);
+static void net_up_event_handler(uint64_t event, struct net_if *iface, void *info,
+				 size_t info_length, void *user_data)
+{
+	ARG_UNUSED(event);
+	ARG_UNUSED(iface);
+	ARG_UNUSED(info);
+	ARG_UNUSED(info_length);
+	ARG_UNUSED(user_data);
+
+	k_event_post(&network_events, NETWORK_EVENT_UP);
+}
+
+NET_MGMT_REGISTER_EVENT_HANDLER(coldtracker_net_up_handler, NET_EVENT_L4_CONNECTED,
+				net_up_event_handler, NULL);
+
+static void net_down_event_handler(uint64_t event, struct net_if *iface, void *info,
+				   size_t info_length, void *user_data)
+{
+	ARG_UNUSED(event);
+	ARG_UNUSED(iface);
+	ARG_UNUSED(info);
+	ARG_UNUSED(info_length);
+	ARG_UNUSED(user_data);
+
+	k_event_post(&network_events, NETWORK_EVENT_DOWN);
+}
+
+NET_MGMT_REGISTER_EVENT_HANDLER(coldtracker_net_down_handler, NET_EVENT_L4_DISCONNECTED,
+				net_down_event_handler, NULL);
 
 #ifdef CONFIG_WIFI
 static struct net_mgmt_event_callback wifi_mgmt_cb;
@@ -42,6 +74,8 @@ static struct net_mgmt_event_callback wifi_mgmt_cb;
 static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_event,
 			       struct net_if *iface)
 {
+	ARG_UNUSED(iface);
+
 	if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT) {
 		const struct wifi_status *status = (const struct wifi_status *)cb->info;
 
@@ -49,6 +83,7 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt
 			LOG_INF("Wi-Fi connected");
 		} else {
 			LOG_ERR("Wi-Fi connect failed, status: %d", status->status);
+			k_event_post(&network_events, NETWORK_EVENT_DOWN);
 		}
 	}
 }
@@ -107,7 +142,7 @@ static int ppp_connect(struct net_if *iface)
 }
 #endif /* CONFIG_NET_PPP */
 
-int network_connect(void)
+static int network_connect(void)
 {
 	struct net_if *iface = net_if_get_default();
 
@@ -127,14 +162,37 @@ int network_connect(void)
 		return ppp_connect(iface);
 	))
 
-	return 0;
+	return -ENOTSUP;
 }
 
-void network_wait_ready(void)
+static void network_thread(void *p1, void *p2, void *p3)
 {
-	LOG_INF("Waiting for network...");
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
 
-	k_sem_take(&network_ready_sem, K_FOREVER);
+	publish_network_state(NETWORK_STATE_CONNECTING);
 
-	LOG_INF("Network is ready");
+	int ret = network_connect();
+	if (ret < 0) {
+		LOG_ERR("Failed to initiate network connection: %d", ret);
+		publish_network_state(NETWORK_STATE_OFFLINE);
+	}
+
+	while (1) {
+		uint32_t events = k_event_wait(
+			&network_events, NETWORK_EVENT_UP | NETWORK_EVENT_DOWN, true, K_FOREVER);
+
+		if (events & NETWORK_EVENT_UP) {
+			LOG_INF("Network is online");
+			publish_network_state(NETWORK_STATE_ONLINE);
+		}
+
+		if (events & NETWORK_EVENT_DOWN) {
+			LOG_WRN("Network is offline");
+			publish_network_state(NETWORK_STATE_OFFLINE);
+		}
+	}
 }
+
+K_THREAD_DEFINE(network_thread_id, 2048, network_thread, NULL, NULL, NULL, 5, 0, 0);

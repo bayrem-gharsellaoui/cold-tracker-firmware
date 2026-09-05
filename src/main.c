@@ -1,12 +1,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/app_version.h>
-#include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
-
-#ifdef CONFIG_NETWORKING
-#include "coldtracker_network.h"
-#endif
 
 #define ANSI_COLOR_CYAN  "\033[96m"
 #define ANSI_COLOR_GREEN "\033[92m"
@@ -36,16 +30,6 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 int main(void)
 {
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
-
-	IF_ENABLED(CONFIG_NETWORKING, (
-		int ret = network_connect();
-		if (ret < 0) {
-			LOG_ERR("Failed to initiate network connection: %d", ret);
-			return ret;
-		}
-		network_wait_ready();
-		LOG_INF("ColdTracker is online");
-	))
 
 	while (1) {
 		k_msleep(1000);

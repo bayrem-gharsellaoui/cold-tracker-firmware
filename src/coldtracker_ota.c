@@ -1,16 +1,18 @@
 #include <string.h>
 #include <strings.h>
 
+#include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/dfu/flash_img.h>
 #include <zephyr/net/http/client.h>
 #include <zephyr/net/http/parser.h>
 #include <zephyr/net/http/parser_url.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ota, LOG_LEVEL_DBG);
 
-#include "coldtracker_ota.h"
+#include "coldtracker_messages.h"
 
 #define HTTP_TIMEOUT_MS      30000
 #define HTTP_RECV_BUF_SIZE   1024
@@ -37,6 +39,9 @@ struct url_context {
 };
 
 static struct ota_context ota_ctx;
+
+ZBUS_SUBSCRIBER_DEFINE(ota_subscriber, 4);
+ZBUS_CHAN_ADD_OBS(time_status_chan, ota_subscriber, 3);
 
 static int parse_url(const char *url, struct url_context *ctx)
 {
@@ -332,6 +337,54 @@ int ota_update(const char *url)
 
 	return -EIO;
 }
+
+static void ota_check_for_update(void)
+{
+}
+
+static void ota_thread(void *p1, void *p2, void *p3)
+{
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
+
+	const struct zbus_channel *chan = NULL;
+	struct network_status_msg network_status = {0};
+	int ret;
+
+	/* 1. Wait until the Network is online */
+	while (1) {
+		ret = zbus_sub_wait(&ota_subscriber, &chan, K_FOREVER);
+		if (ret < 0) {
+			LOG_ERR("Failed waiting for network state: %d", ret);
+			continue;
+		}
+
+		if (chan != &network_status_chan) {
+			LOG_WRN("Not interested in this channel: %s", chan->name);
+			continue;
+		}
+
+		ret = zbus_chan_read(chan, &network_status, K_MSEC(100));
+		if (ret < 0) {
+			LOG_ERR("Failed to read network state: %d", ret);
+			continue;
+		}
+
+		if (network_status.state == NETWORK_STATE_ONLINE) {
+			break;
+		}
+	}
+
+	/* 2. Check if there is a new firmware version to download */
+	ota_check_for_update();
+
+	while (1) {
+		k_msleep(1000);
+	}
+}
+
+K_THREAD_DEFINE(ota_thread_id, 2048, ota_thread, NULL, NULL, NULL, 8, 0, 0);
 
 #ifdef CONFIG_SHELL
 static int cmd_update(const struct shell *sh, size_t argc, char **argv)
