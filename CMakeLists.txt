@@ -23,6 +23,7 @@ target_include_directories(app PRIVATE
 target_sources(app PRIVATE
   src/main.c
   src/coldtracker_sensing.c
+  src/coldtracker_channels.c
 )
 
 target_sources_ifdef(CONFIG_NETWORKING app PRIVATE
