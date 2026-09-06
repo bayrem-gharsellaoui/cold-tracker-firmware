@@ -4,7 +4,6 @@
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
-#include <zephyr/sys/util.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(network, LOG_LEVEL_DBG);
@@ -90,10 +89,6 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt
 
 static int wifi_connect(struct net_if *iface)
 {
-	net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_event_handler,
-				     NET_EVENT_WIFI_CONNECT_RESULT);
-	net_mgmt_add_event_callback(&wifi_mgmt_cb);
-
 	static struct wifi_connect_req_params params = {
 		.ssid = (const uint8_t *)CONFIG_WIFI_CREDENTIALS_STATIC_SSID,
 		.ssid_length = sizeof(CONFIG_WIFI_CREDENTIALS_STATIC_SSID) - 1,
@@ -103,6 +98,11 @@ static int wifi_connect(struct net_if *iface)
 		.channel = WIFI_CHANNEL_ANY,
 		.band = WIFI_FREQ_BAND_2_4_GHZ,
 	};
+
+	net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_event_handler,
+				     NET_EVENT_WIFI_CONNECT_RESULT);
+
+	net_mgmt_add_event_callback(&wifi_mgmt_cb);
 
 	LOG_INF("Connecting to SSID: %s", CONFIG_WIFI_CREDENTIALS_STATIC_SSID);
 
@@ -122,7 +122,7 @@ static int usb_connect(struct net_if *iface)
 	}
 
 	ret = usbd_enable(ctx);
-	if (ret) {
+	if (ret < 0) {
 		return ret;
 	}
 
@@ -146,7 +146,7 @@ static int network_connect(void)
 {
 	struct net_if *iface = net_if_get_default();
 
-	if (!iface) {
+	if (iface == NULL) {
 		return -ENODEV;
 	}
 
@@ -160,6 +160,10 @@ static int network_connect(void)
 
 	IF_ENABLED(CONFIG_NET_PPP, (
 		return ppp_connect(iface);
+	))
+
+	IF_ENABLED(CONFIG_NET_NATIVE_OFFLOADED_SOCKETS, (
+		return 0;
 	))
 
 	return -ENOTSUP;
@@ -180,8 +184,8 @@ static void network_thread(void *p1, void *p2, void *p3)
 	}
 
 	while (1) {
-		uint32_t events = k_event_wait(
-			&network_events, NETWORK_EVENT_UP | NETWORK_EVENT_DOWN, true, K_FOREVER);
+		uint32_t events = k_event_wait_safe(
+			&network_events, NETWORK_EVENT_UP | NETWORK_EVENT_DOWN, false, K_FOREVER);
 
 		if (events & NETWORK_EVENT_UP) {
 			LOG_INF("Network is online");

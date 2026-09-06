@@ -8,10 +8,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(cold-tracker)
 
-if (CONFIG_NETWORKING)
-  include(${ZEPHYR_BASE}/samples/net/common/common.cmake)
-endif()
-
 if (CONFIG_USB_DEVICE_STACK_NEXT)
   include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
 endif()
