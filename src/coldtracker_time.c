@@ -47,6 +47,10 @@ static int get_time_from_rtc(const struct device *rtc_dev, struct timespec *time
 		return -EINVAL;
 	}
 
+	if (timestamp == 0) {
+		return -ENODATA;
+	}
+
 	time->tv_sec = timestamp;
 	time->tv_nsec = rtc_time.tm_nsec;
 
