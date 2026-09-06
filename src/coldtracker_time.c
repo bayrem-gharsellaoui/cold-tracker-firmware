@@ -1,13 +1,18 @@
+#include <errno.h>
 #include <time.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/rtc.h>
 #include <zephyr/net/sntp.h>
 #include <zephyr/sys/clock.h>
-#include <zephyr/sys/timeutil.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
+
+#ifdef CONFIG_RTC
+#include <zephyr/device.h>
+#include <zephyr/drivers/rtc.h>
+#include <zephyr/sys/timeutil.h>
+#endif /* CONFIG_RTC */
+
 LOG_MODULE_REGISTER(time, LOG_LEVEL_DBG);
 
 #include "coldtracker_messages.h"
@@ -16,28 +21,22 @@ LOG_MODULE_REGISTER(time, LOG_LEVEL_DBG);
 #define SNTP_TIMEOUT_MS  4000
 #define SNTP_RETRY_DELAY K_SECONDS(1)
 
-static void time_thread(void *p1, void *p2, void *p3);
+static void time_thread_entry(void *p1, void *p2, void *p3);
 static void time_sync_work_handler(struct k_work *work);
 
-static int get_time_from_rtc(const struct device *rtc_dev, struct timespec *time);
-static int get_time_from_sntp(struct timespec *time);
-static int save_time_to_rtc(const struct device *rtc_dev, const struct timespec *time);
-static int format_time(const struct timespec *time, char *buf, size_t buf_size);
-
-K_THREAD_DEFINE(time_thread_id, 2048, time_thread, NULL, NULL, NULL, 5, 0, 0);
-
+K_THREAD_DEFINE(time_thread, 2048, time_thread_entry, NULL, NULL, NULL, 5, 0, 0);
 K_WORK_DELAYABLE_DEFINE(time_sync_work, time_sync_work_handler);
-
 ZBUS_SUBSCRIBER_DEFINE(time_subscriber, 4);
 ZBUS_CHAN_ADD_OBS(network_status_chan, time_subscriber, 3);
 
-static int get_time_from_rtc(const struct device *rtc_dev, struct timespec *time)
+#ifdef CONFIG_RTC
+static int get_time_from_rtc(const struct device *dev, struct timespec *time)
 {
 	struct rtc_time rtc_time = {0};
-	time_t timestamp;
+	time_t timestamp = 0;
 	int ret;
 
-	ret = rtc_get_time(rtc_dev, &rtc_time);
+	ret = rtc_get_time(dev, &rtc_time);
 	if (ret < 0) {
 		return ret;
 	}
@@ -53,6 +52,21 @@ static int get_time_from_rtc(const struct device *rtc_dev, struct timespec *time
 	return 0;
 }
 
+static int save_time_to_rtc(const struct device *dev, const struct timespec *time)
+{
+	struct rtc_time rtc_time = {0};
+
+	if (gmtime_r(&time->tv_sec, rtc_time_to_tm(&rtc_time)) == NULL) {
+		return -EINVAL;
+	}
+
+	rtc_time.tm_nsec = time->tv_nsec;
+
+	return rtc_set_time(dev, &rtc_time);
+}
+
+#endif /* CONFIG_RTC */
+
 static int get_time_from_sntp(struct timespec *time)
 {
 	struct sntp_time sntp_time = {0};
@@ -67,19 +81,6 @@ static int get_time_from_sntp(struct timespec *time)
 	time->tv_nsec = ((uint64_t)sntp_time.fraction * NSEC_PER_SEC) >> 32;
 
 	return 0;
-}
-
-static int save_time_to_rtc(const struct device *rtc_dev, const struct timespec *time)
-{
-	struct rtc_time rtc_time = {0};
-
-	if (gmtime_r(&time->tv_sec, rtc_time_to_tm(&rtc_time)) == NULL) {
-		return -EINVAL;
-	}
-
-	rtc_time.tm_nsec = time->tv_nsec;
-
-	return rtc_set_time(rtc_dev, &rtc_time);
 }
 
 static int format_time(const struct timespec *time, char *buf, size_t buf_size)
@@ -99,16 +100,15 @@ static int format_time(const struct timespec *time, char *buf, size_t buf_size)
 
 static void time_sync_work_handler(struct k_work *work)
 {
-	ARG_UNUSED(work);
-
-	const struct device *rtc_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
-	struct timespec time = {0};
-	char datetime[32] = {0};
 	struct time_status_msg time_status = {
 		.state = TIME_STATE_AVAILABLE,
 		.source = TIME_SOURCE_SNTP,
 	};
+	struct timespec time = {0};
+	char time_string[32] = {0};
 	int ret;
+
+	ARG_UNUSED(work);
 
 	LOG_INF("Synchronizing time with %s...", SNTP_SERVER);
 
@@ -128,75 +128,74 @@ static void time_sync_work_handler(struct k_work *work)
 		return;
 	}
 
+#ifdef CONFIG_RTC
+	const struct device *rtc_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
+
 	ret = save_time_to_rtc(rtc_dev, &time);
 	if (ret < 0) {
-		LOG_WRN("Failed to save synchronized time to RTC: %d", ret);
+		LOG_WRN("Failed to save time to RTC: %d", ret);
 	}
+#endif /* CONFIG_RTC */
 
-	ret = format_time(&time, datetime, sizeof(datetime));
+	ret = format_time(&time, time_string, sizeof(time_string));
 	if (ret < 0) {
-		LOG_ERR("Failed to format time: %d", ret);
+		LOG_WRN("Failed to format synchronized time: %d", ret);
 	} else {
-		LOG_INF("Time synchronized: %s UTC (%lld)", datetime, (long long)time.tv_sec);
+		LOG_INF("Time synchronized: %s UTC (%lld)", time_string, (long long)time.tv_sec);
 	}
 
 	ret = zbus_chan_pub(&time_status_chan, &time_status, K_MSEC(100));
 	if (ret < 0) {
-		LOG_ERR("Failed to publish time state: %d", ret);
+		LOG_ERR("Failed to publish time status: %d", ret);
 	}
 }
 
-static void time_thread(void *p1, void *p2, void *p3)
+static void time_thread_entry(void *p1, void *p2, void *p3)
 {
+	const struct zbus_channel *chan = NULL;
+	struct network_status_msg network_status = {0};
+	int ret;
+
 	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
 
+#ifdef CONFIG_RTC
 	const struct device *rtc_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
-	const struct zbus_channel *chan = NULL;
-	struct network_status_msg network_status = {0};
+	struct timespec time = {0};
 	struct time_status_msg time_status = {
 		.state = TIME_STATE_AVAILABLE,
 		.source = TIME_SOURCE_RTC,
 	};
-	struct timespec time = {0};
-	char datetime[32] = {0};
-	int ret;
+	char time_string[32] = {0};
 
 	if (!device_is_ready(rtc_dev)) {
-		LOG_ERR("RTC device is not ready");
-		return;
-	}
-
-	/* Try to restore the system clock from the RTC at startup */
-	ret = get_time_from_rtc(rtc_dev, &time);
-	if (ret < 0) {
-		if (ret == -ENODATA) {
+		LOG_WRN("RTC device is not ready");
+	} else {
+		ret = get_time_from_rtc(rtc_dev, &time);
+		if (ret < 0) {
 			LOG_INF("RTC does not contain valid time");
 		} else {
-			LOG_ERR("Failed to get time from RTC: %d", ret);
-		}
-	} else {
-		ret = sys_clock_settime(SYS_CLOCK_REALTIME, &time);
-		if (ret < 0) {
-			LOG_ERR("Failed to restore system clock: %d", ret);
-		} else {
-			ret = format_time(&time, datetime, sizeof(datetime));
+			ret = sys_clock_settime(SYS_CLOCK_REALTIME, &time);
 			if (ret < 0) {
-				LOG_ERR("Failed to format time: %d", ret);
+				LOG_ERR("Failed to set system clock: %d", ret);
 			} else {
-				LOG_INF("Time restored from RTC: %s UTC (%lld)", datetime,
-					(long long)time.tv_sec);
-			}
-
-			ret = zbus_chan_pub(&time_status_chan, &time_status, K_MSEC(100));
-			if (ret < 0) {
-				LOG_ERR("Failed to publish time state: %d", ret);
+				ret = format_time(&time, time_string, sizeof(time_string));
+				if (ret < 0) {
+					LOG_WRN("Failed to format RTC time: %d", ret);
+				} else {
+					LOG_INF("Time restored from RTC: %s UTC (%lld)",
+						time_string, (long long)time.tv_sec);
+				}
+				ret = zbus_chan_pub(&time_status_chan, &time_status, K_MSEC(100));
+				if (ret < 0) {
+					LOG_ERR("Failed to publish time status: %d", ret);
+				}
 			}
 		}
 	}
+#endif /* CONFIG_RTC */
 
-	/* Wait for network state changes */
 	while (1) {
 		ret = zbus_sub_wait(&time_subscriber, &chan, K_FOREVER);
 		if (ret < 0) {
@@ -205,7 +204,6 @@ static void time_thread(void *p1, void *p2, void *p3)
 		}
 
 		if (chan != &network_status_chan) {
-			LOG_WRN("Not interested in this channel: %s", chan->name);
 			continue;
 		}
 
@@ -215,16 +213,10 @@ static void time_thread(void *p1, void *p2, void *p3)
 			continue;
 		}
 
-		if (network_status.state == NETWORK_STATE_OFFLINE) {
-			LOG_WRN("Network is offline, stopping SNTP retries");
+		if (network_status.state == NETWORK_STATE_ONLINE) {
+			k_work_reschedule(&time_sync_work, K_NO_WAIT);
+		} else if (network_status.state == NETWORK_STATE_OFFLINE) {
 			k_work_cancel_delayable(&time_sync_work);
-			continue;
 		}
-
-		if (network_status.state != NETWORK_STATE_ONLINE) {
-			continue;
-		}
-
-		k_work_reschedule(&time_sync_work, K_NO_WAIT);
 	}
 }

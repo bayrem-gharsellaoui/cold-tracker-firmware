@@ -10,13 +10,15 @@
 LOG_MODULE_REGISTER(sensing, LOG_LEVEL_DBG);
 
 #include "coldtracker_messages.h"
+#include "coldtracker_sample.h"
+#include "coldtracker_storage.h"
 
 #define SENSING_PERIOD K_SECONDS(1)
 
 ZBUS_SUBSCRIBER_DEFINE(sensing_subscriber, 4);
 ZBUS_CHAN_ADD_OBS(time_status_chan, sensing_subscriber, 3);
 
-static void sensing_take_sample(const struct device *dev)
+static int sensing_take_sample(const struct device *dev, struct coldtracker_sample *sample)
 {
 	struct sensor_value temperature = {0};
 	struct timespec timestamp = {0};
@@ -25,23 +27,28 @@ static void sensing_take_sample(const struct device *dev)
 	ret = sensor_sample_fetch(dev);
 	if (ret < 0) {
 		LOG_ERR("Failed to fetch sensor sample: %d", ret);
-		return;
+		return ret;
 	}
 
 	ret = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP, &temperature);
 	if (ret < 0) {
 		LOG_ERR("Failed to read temperature: %d", ret);
-		return;
+		return ret;
 	}
 
 	ret = sys_clock_gettime(SYS_CLOCK_REALTIME, &timestamp);
 	if (ret < 0) {
 		LOG_ERR("Failed to read system time: %d", ret);
-		return;
+		return ret;
 	}
 
+	sample->temperature_mc = sensor_value_to_milli(&temperature);
+	sample->timestamp = timestamp.tv_sec;
+
 	LOG_DBG("Temperature: %.2f C @ %lld", sensor_value_to_double(&temperature),
-		(long long)timestamp.tv_sec);
+		(long long)sample->timestamp);
+
+	return 0;
 }
 
 static void sensing_thread_entry(void *arg1, void *arg2, void *arg3)
@@ -86,8 +93,21 @@ static void sensing_thread_entry(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Time available (source: %d), starting sensing", time_status.source);
 
 	/* 2. Periodically acquire and timestamp temperature samples */
-	while (1) {
-		sensing_take_sample(dev);
+	int count = 3;
+	while (count--) {
+		struct coldtracker_sample sample = {0};
+
+		ret = sensing_take_sample(dev, &sample);
+		if (ret < 0) {
+			k_sleep(SENSING_PERIOD);
+			continue;
+		}
+
+		ret = storage_append(&sample);
+		if (ret < 0) {
+			LOG_ERR("Failed to store sample: %d", ret);
+		}
+
 		k_sleep(SENSING_PERIOD);
 	}
 }
