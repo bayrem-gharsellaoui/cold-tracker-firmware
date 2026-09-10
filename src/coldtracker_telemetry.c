@@ -73,7 +73,7 @@ static void telemetry_thread_entry(void *arg1, void *arg2, void *arg3)
 
 		ret = storage_peek(&sample);
 		if (ret == -ENOENT) {
-			LOG_DBG("No pending data to push");
+			LOG_WRN("No pending data to push");
 			break;
 		}
 
