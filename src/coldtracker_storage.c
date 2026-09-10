@@ -29,6 +29,13 @@ LOG_MODULE_REGISTER(storage, LOG_LEVEL_DBG);
  */
 #define STORAGE_MAX_SECTORS 64
 
+struct storage_walk_context {
+	storage_callback_t callback;
+	void *user_data;
+};
+
+K_MUTEX_DEFINE(storage_lock);
+
 static bool storage_initialized = false;
 
 static struct flash_sector storage_sectors[STORAGE_MAX_SECTORS] = {0};
@@ -39,6 +46,8 @@ static struct fcb storage_fcb = {
 	.f_scratch_cnt = STORAGE_FCB_SCRATCH_CNT,
 	.f_sectors = storage_sectors,
 };
+
+static struct fcb_entry read_cursor = {0};
 
 static int storage_init(void)
 {
@@ -69,58 +78,6 @@ static int storage_init(void)
 
 	return 0;
 }
-
-SYS_INIT(storage_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
-
-int storage_append(const struct coldtracker_sample *sample)
-{
-	int ret;
-	struct fcb_entry entry = {0};
-
-	if (sample == NULL) {
-		return -EINVAL;
-	}
-
-	if (!storage_initialized) {
-		return -ENODEV;
-	}
-
-	/* Ask FCB to reserve space for the new sample */
-	ret = fcb_append(&storage_fcb, sizeof(*sample), &entry);
-	if (ret < 0) {
-		if (ret == -ENOSPC) {
-			LOG_WRN("Storage is full");
-		} else {
-			LOG_ERR("Failed to append FCB entry: %d", ret);
-		}
-		return ret;
-	}
-
-	/* Write the sample into the space allocated by FCB */
-	ret = flash_area_write(storage_fcb.fap, FCB_ENTRY_FA_DATA_OFF(entry), sample,
-			       sizeof(*sample));
-	if (ret < 0) {
-		LOG_ERR("Failed to write sample: %d", ret);
-		return ret;
-	}
-
-	/* Finish the entry so FCB considers it complete */
-	ret = fcb_append_finish(&storage_fcb, &entry);
-	if (ret < 0) {
-		LOG_ERR("Failed to finish FCB entry: %d", ret);
-		return ret;
-	}
-
-	LOG_DBG("Stored sample: %lld mC @ %lld", (long long)sample->temperature_mc,
-		(long long)sample->timestamp);
-
-	return 0;
-}
-
-struct storage_walk_context {
-	storage_callback_t callback;
-	void *user_data;
-};
 
 static int storage_walk_cb(struct fcb_entry_ctx *entry_ctx, void *arg)
 {
@@ -155,12 +112,161 @@ int storage_foreach(storage_callback_t callback, void *user_data)
 		return -EINVAL;
 	}
 
+	if (!storage_initialized) {
+		return -ENODEV;
+	}
+
+	k_mutex_lock(&storage_lock, K_FOREVER);
+
 	ret = fcb_walk(&storage_fcb, NULL, storage_walk_cb, &ctx);
+
+	k_mutex_unlock(&storage_lock);
+
+	return ret;
+}
+
+int storage_append(const struct coldtracker_sample *sample)
+{
+	int ret;
+	struct fcb_entry entry = {0};
+
+	if (sample == NULL) {
+		return -EINVAL;
+	}
+
+	if (!storage_initialized) {
+		return -ENODEV;
+	}
+
+	k_mutex_lock(&storage_lock, K_FOREVER);
+
+	/* Ask FCB to reserve space for the new sample */
+	ret = fcb_append(&storage_fcb, sizeof(*sample), &entry);
+	if (ret < 0) {
+		if (ret == -ENOSPC) {
+			LOG_WRN("Storage is full");
+		} else {
+			LOG_ERR("Failed to append FCB entry: %d", ret);
+		}
+		goto out;
+	}
+
+	/* Write the sample into the space allocated by FCB */
+	ret = flash_area_write(storage_fcb.fap, FCB_ENTRY_FA_DATA_OFF(entry), sample,
+			       sizeof(*sample));
+	if (ret < 0) {
+		LOG_ERR("Failed to write sample: %d", ret);
+		goto out;
+	}
+
+	/* Finish the entry so FCB considers it complete */
+	ret = fcb_append_finish(&storage_fcb, &entry);
+	if (ret < 0) {
+		LOG_ERR("Failed to finish FCB entry: %d", ret);
+		goto out;
+	}
+
+	LOG_DBG("Stored sample: %lld mC @ %lld", (long long)sample->temperature_mc,
+		(long long)sample->timestamp);
+
+out:
+	k_mutex_unlock(&storage_lock);
+
+	return ret;
+}
+
+int storage_peek(struct coldtracker_sample *sample)
+{
+	int ret;
+
+	if (sample == NULL) {
+		return -EINVAL;
+	}
+
+	if (!storage_initialized) {
+		return -ENODEV;
+	}
+
+	k_mutex_lock(&storage_lock, K_FOREVER);
+
+	if (read_cursor.fe_sector == NULL) {
+		ret = fcb_getnext(&storage_fcb, &read_cursor);
+		if (ret == -ENOTSUP) {
+			read_cursor = (struct fcb_entry){0};
+			ret = -ENOENT;
+			goto out;
+		}
+
+		if (ret < 0) {
+			goto out;
+		}
+	}
+
+	if (read_cursor.fe_data_len != sizeof(*sample)) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = flash_area_read(storage_fcb.fap, FCB_ENTRY_FA_DATA_OFF(read_cursor), sample,
+			      sizeof(*sample));
+
+out:
+	k_mutex_unlock(&storage_lock);
+
+	return ret;
+}
+
+int storage_commit(void)
+{
+	struct fcb_entry next_entry;
+	int ret;
+
+	if (!storage_initialized) {
+		return -ENODEV;
+	}
+
+	k_mutex_lock(&storage_lock, K_FOREVER);
+
+	if (read_cursor.fe_sector == NULL) {
+		ret = -ENOENT;
+		goto out;
+	}
+
+	next_entry = read_cursor;
+
+	ret = fcb_getnext(&storage_fcb, &next_entry);
+	if (ret == -ENOTSUP) {
+		ret = fcb_rotate(&storage_fcb);
+		if (ret < 0) {
+			goto out;
+		}
+
+		read_cursor = (struct fcb_entry){0};
+		goto out;
+	}
+
+	if (ret < 0) {
+		goto out;
+	}
+
+	if (next_entry.fe_sector != read_cursor.fe_sector) {
+		ret = fcb_rotate(&storage_fcb);
+		if (ret < 0) {
+			goto out;
+		}
+	}
+
+	read_cursor = next_entry;
+	ret = 0;
+
+out:
+	k_mutex_unlock(&storage_lock);
 
 	return ret;
 }
 
 #ifdef CONFIG_SHELL
+
 struct history_context {
 	const struct shell *sh;
 	size_t count;
@@ -210,4 +316,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(storage_commands,
 			       SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(storage, &storage_commands, "ColdTracker storage commands", NULL);
+
 #endif /* CONFIG_SHELL */
+
+SYS_INIT(storage_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

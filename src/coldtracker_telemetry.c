@@ -20,7 +20,7 @@ static int push_sample(const struct coldtracker_sample *sample)
 		LOG_ERR("No valid sample to push");
 		return -EINVAL;
 	}
-	
+
 	LOG_DBG("Pushing data: %.2f C @ %lld", (double)sample->temperature_mc / 1000.0,
 		(long long)sample->timestamp);
 
@@ -69,10 +69,31 @@ static void telemetry_thread_entry(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Network is online, processing pending telemetry");
 
 	while (1) {
-		ret = storage_foreach(process_sample, NULL);
-		if (ret < 0) {
-			LOG_ERR("Failed to process stored samples: %d", ret);
+		struct coldtracker_sample sample = {0};
+
+		ret = storage_peek(&sample);
+		if (ret == -ENOENT) {
+			LOG_DBG("No pending data to push");
+			break;
 		}
+
+		if (ret < 0) {
+			LOG_ERR("Failed to read pending sample: %d", ret);
+			break;
+		}
+
+		ret = push_sample(&sample);
+		if (ret < 0) {
+			LOG_ERR("Failed to push sample: %d", ret);
+			break;
+		}
+
+		ret = storage_commit();
+		if (ret < 0) {
+			LOG_ERR("Failed to commit sample: %d", ret);
+			break;
+		}
+
 		k_sleep(TELEMETRY_PERIOD);
 	}
 }
