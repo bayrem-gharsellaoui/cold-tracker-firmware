@@ -21,11 +21,13 @@ target_sources(app PRIVATE
   src/coldtracker_sensing.c
   src/coldtracker_storage.c
   src/coldtracker_channels.c
+  src/coldtracker_faults.c
 )
 
 target_sources_ifdef(CONFIG_NETWORKING app PRIVATE
   src/coldtracker_network.c
   src/coldtracker_time.c
+  src/coldtracker_telemetry.c
 )
 
 target_sources_ifdef(CONFIG_BOOTLOADER_MCUBOOT app PRIVATE
