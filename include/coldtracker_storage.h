@@ -3,6 +3,9 @@
 
 #include "coldtracker_sample.h"
 
+typedef int (*storage_callback_t)(const struct coldtracker_sample *sample, void *user_data);
+
 int storage_append(const struct coldtracker_sample *sample);
+int storage_foreach(storage_callback_t callback, void *user_data);
 
 #endif /* COLDTRACKER_STORAGE_H_ */

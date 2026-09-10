@@ -1,13 +1,16 @@
-#include <stdbool.h>
 #include <errno.h>
 
 #include <zephyr/init.h>
+#include <zephyr/kernel.h>
 #include <zephyr/fs/fcb.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/shell/shell.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(storage, LOG_LEVEL_DBG);
+
+#ifdef CONFIG_SHELL
+#include <zephyr/shell/shell.h>
+#endif /* CONFIG_SHELL */
 
 #include "coldtracker_storage.h"
 
@@ -114,32 +117,61 @@ int storage_append(const struct coldtracker_sample *sample)
 	return 0;
 }
 
-#ifdef CONFIG_SHELL
-struct history_context {
-	const struct shell *sh;
-	size_t count;
+struct storage_walk_context {
+	storage_callback_t callback;
+	void *user_data;
 };
 
-static int storage_history_cb(struct fcb_entry_ctx *entry_ctx, void *arg)
+static int storage_walk_cb(struct fcb_entry_ctx *entry_ctx, void *arg)
 {
-	struct history_context *ctx = arg;
+	struct storage_walk_context *ctx = arg;
 	struct coldtracker_sample sample = {0};
 	int ret;
 
 	if (entry_ctx->loc.fe_data_len != sizeof(sample)) {
-		shell_warn(ctx->sh, "Skipping invalid entry");
+		LOG_WRN("Skipping invalid entry");
 		return 0;
 	}
 
 	ret = flash_area_read(entry_ctx->fap, FCB_ENTRY_FA_DATA_OFF(entry_ctx->loc), &sample,
 			      sizeof(sample));
 	if (ret < 0) {
-		shell_error(ctx->sh, "Failed to read entry: %d", ret);
+		LOG_ERR("Failed to read sample: %d", ret);
 		return ret;
 	}
 
+	return ctx->callback(&sample, ctx->user_data);
+}
+
+int storage_foreach(storage_callback_t callback, void *user_data)
+{
+	struct storage_walk_context ctx = {
+		.callback = callback,
+		.user_data = user_data,
+	};
+	int ret;
+
+	if (callback == NULL) {
+		return -EINVAL;
+	}
+
+	ret = fcb_walk(&storage_fcb, NULL, storage_walk_cb, &ctx);
+
+	return ret;
+}
+
+#ifdef CONFIG_SHELL
+struct history_context {
+	const struct shell *sh;
+	size_t count;
+};
+
+static int storage_history_cb(const struct coldtracker_sample *sample, void *user_data)
+{
+	struct history_context *ctx = user_data;
+
 	shell_print(ctx->sh, "%zu: %.2f C @ %lld", ++ctx->count,
-		    (double)sample.temperature_mc / 1000.0, (long long)sample.timestamp);
+		    (double)sample->temperature_mc / 1000.0, (long long)sample->timestamp);
 
 	return 0;
 }
@@ -159,7 +191,7 @@ static int cmd_storage_history(const struct shell *sh, size_t argc, char **argv)
 		return -ENODEV;
 	}
 
-	ret = fcb_walk(&storage_fcb, NULL, storage_history_cb, &ctx);
+	ret = storage_foreach(storage_history_cb, &ctx);
 	if (ret < 0) {
 		shell_error(sh, "Failed to read storage history: %d", ret);
 		return ret;

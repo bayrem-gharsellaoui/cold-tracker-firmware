@@ -26,6 +26,7 @@ target_sources(app PRIVATE
 target_sources_ifdef(CONFIG_NETWORKING app PRIVATE
   src/coldtracker_network.c
   src/coldtracker_time.c
+  src/coldtracker_telemetry.c
 )
 
 target_sources_ifdef(CONFIG_BOOTLOADER_MCUBOOT app PRIVATE
