@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/fatal.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/logging/log_ctrl.h>
 LOG_MODULE_REGISTER(faults, LOG_LEVEL_DBG);
 
 void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf)

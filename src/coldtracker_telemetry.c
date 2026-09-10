@@ -27,13 +27,6 @@ static int push_sample(const struct coldtracker_sample *sample)
 	return 0;
 }
 
-static int process_sample(const struct coldtracker_sample *sample, void *user_data)
-{
-	ARG_UNUSED(user_data);
-
-	return push_sample(sample);
-}
-
 static void telemetry_thread_entry(void *arg1, void *arg2, void *arg3)
 {
 	const struct zbus_channel *chan = NULL;
