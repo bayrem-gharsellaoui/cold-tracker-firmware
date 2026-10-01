@@ -1,0 +1,60 @@
+/ {
+	aliases {
+		coldtracker-temp = &die_temp;
+	};
+
+	chosen {
+		zephyr,settings-partition = &device_settings_partition;
+		zephyr,rtc = &rtc;
+	};
+};
+
+&adc1 {
+	status = "disabled";
+};
+
+&adc12_common {
+	status = "disabled";
+};
+
+&adc3_common {
+	clocks = <&rcc STM32_CLOCK(AHB4, 24)>, <&rcc STM32_SRC_PLL2_P ADC_SEL(0)>;
+	clock-names = "adcx", "adc_ker";
+
+	st,adc-clock-source = "ASYNC";
+	st,adc-prescaler = <4>;
+
+	status = "okay";
+};
+
+&adc3 {
+	status = "okay";
+};
+
+&die_temp {
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		/*
+		 * Internal flash after MCUboot + slot0 + slot1.
+		 *
+		 * Board layout ends slot1 at 0x100000.
+		 */
+
+		/* 128 KB for settings. */
+		device_settings_partition: partition@100000 {
+			compatible = "zephyr,mapped-partition";
+			label = "device-settings";
+			reg = <0x100000 0x20000>;
+		};
+
+		/* 384 KB for ColdTracker sensor data. */
+		sensor_data_partition: partition@120000 {
+			compatible = "zephyr,mapped-partition";
+			label = "sensor-data";
+			reg = <0x120000 0x60000>;
+		};
+	};
+};

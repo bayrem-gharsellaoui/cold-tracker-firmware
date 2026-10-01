@@ -1,6 +1,15 @@
+/*
+ * Copyright (c) 2026 Bayrem Gharsellaoui
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/app_version.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
+
+#include <servz/service.hpp>
 
 #define ANSI_COLOR_CYAN  "\033[96m"
 #define ANSI_COLOR_GREEN "\033[92m"
@@ -27,11 +36,16 @@
 	"reserved.\r\n" ANSI_COLOR_RESET ANSI_COLOR_CYAN                                           \
 	"                            Target: %s\r\n\r\n" ANSI_COLOR_RESET
 
-int main(void)
+int main()
 {
 	printk(COLDTRACKER_BOOT_BANNER, APP_VERSION_STRING, CONFIG_BOARD_TARGET);
 
-	while (1) {
+	LOG_INF("Registered services:");
+
+	servz::Service::for_each(
+		[](servz::Service &service) { LOG_INF("- %s", service.get_name()); });
+
+	while (true) {
 		k_msleep(1000);
 	}
 

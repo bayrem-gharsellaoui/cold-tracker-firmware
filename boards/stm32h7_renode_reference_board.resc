@@ -1,0 +1,16 @@
+# Copyright (c) 2026 Bayrem Gharsellaoui
+# SPDX-License-Identifier: Apache-2.0
+
+# UART
+emulation CreateUartPtyTerminal "coldtracker_uart" "/tmp/coldtracker-uart"
+connector Connect sysbus.usart2 coldtracker_uart
+
+# Ethernet
+emulation CreateSwitch "coldtracker_switch"
+emulation CreateTap "tap0" "tap"
+
+connector Connect sysbus.ethernet coldtracker_switch
+connector Connect host.tap coldtracker_switch
+
+# Start everything.
+start

@@ -68,7 +68,7 @@ sequenceDiagram
         loop Sampling interval
             Sensing->>Sensing: Read temperature
             Sensing->>Sensing: Get timestamp
-            Sensing->>Sensing: Build coldtracker_sample
+            Sensing->>Sensing: Build ColdTrackerSample
 
             Sensing->>Storage: storage_append(sample)
             Storage->>FCB: Append record

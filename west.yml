@@ -8,6 +8,9 @@ manifest:
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos
 
+    - name: servz
+      url-base: https://github.com/bayrem-gharsellaoui
+
   projects:
     - name: zephyr
       repo-path: zephyr
@@ -22,6 +25,11 @@ manifest:
           - mbedtls
           - tf-psa-crypto
           - segger
+
+    - name: servz
+      remote: servz
+      revision: main
+      path: modules/servz
 
   self:
     path: application

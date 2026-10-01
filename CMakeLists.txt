@@ -17,19 +17,25 @@ target_include_directories(app PRIVATE
 )
 
 target_sources(app PRIVATE
-  src/main.c
-  src/coldtracker_sensing.c
-  src/coldtracker_storage.c
-  src/coldtracker_channels.c
-  src/coldtracker_faults.c
+  src/main.cpp
+  src/coldtracker_sensing.cpp
+  src/coldtracker_storage.cpp
+  src/coldtracker_faults.cpp
 )
 
 target_sources_ifdef(CONFIG_NETWORKING app PRIVATE
-  src/coldtracker_network.c
-  src/coldtracker_time.c
-  src/coldtracker_telemetry.c
+  src/coldtracker_network.cpp
+  src/network_backend.cpp
+  src/coldtracker_time.cpp
+  src/coldtracker_telemetry.cpp
 )
 
 target_sources_ifdef(CONFIG_BOOTLOADER_MCUBOOT app PRIVATE
-  src/coldtracker_ota.c
+  src/coldtracker_ota.cpp
 )
+
+if(NOT CONFIG_BOARD_NATIVE_SIM)
+  target_sources(app PRIVATE
+    # src/heap_trap.cpp
+  )
+endif()
