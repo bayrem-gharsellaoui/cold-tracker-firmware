@@ -1,13 +1,11 @@
 {
-  "image": "ghcr.io/zephyrproject-rtos/zephyr-build:main",
+  "image": "ghcr.io/zephyrproject-rtos/ci-base:main",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workdir/application,type=bind",
   "workspaceFolder": "/workdir",
-  "postCreateCommand": "bash application/.devcontainer/post-create.sh",
-  "runArgs": [
-    "--privileged",
-    "--device=/dev/bus/usb:/dev/bus/usb",
-    "--network=host"
+  "mounts": [
+    "source=${localWorkspaceFolder}/.vscode,target=/workdir/.vscode,type=bind"
   ],
+  "postCreateCommand": "bash application/.devcontainer/post-create.sh",
   "remoteUser": "user",
   "containerEnv": {
     "ZEPHYR_BASE": "/workdir/zephyr"
@@ -15,6 +13,7 @@
   "customizations": {
     "vscode": {
       "settings": {
+        "diffEditor.ignoreTrimWhitespace": false,
         "terminal.integrated.defaultProfile.linux": "bash",
         "editor.renderWhitespace": "all",
         "editor.rulers": [
@@ -65,16 +64,12 @@
       ],
       "extensions": [
         "ms-vscode.cpptools",
-        "ms-python.python",
         "ms-vscode.vscode-embedded-tools",
         "marus25.cortex-debug",
         "plorefice.devicetree",
         "PKief.material-icon-theme",
         "streetsidesoftware.code-spell-checker",
-        "eamodio.gitlens",
-        "ms-vscode.hexeditor",
-        "dan-c-underwood.arm",
-        "ZixuanWang.linkerscript"
+        "eamodio.gitlens"
       ]
     }
   }
